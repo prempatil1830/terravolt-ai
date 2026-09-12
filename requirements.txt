@@ -1,0 +1,21 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# MongoDB async driver
+motor
+pymongo
+
+# Geospatial (standalone geoprocessing module — NOT used inside FastAPI routes)
+geopandas
+rasterio
+shapely
+pyproj
+
+# Utilities
+python-dotenv
+pydantic
+pydantic-settings
+
+# HTTP client (NASA POWER API and future external data sources)
+requests

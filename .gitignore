@@ -1,0 +1,37 @@
+# Python virtual environments & bytecode
+tenv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Environment secrets
+.env
+.env.*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Heavy GIS raster caches & DEMs (>4.5 GB)
+geoprocessing/data/dem_tiles/
+geoprocessing/data/worldcover_tiles/
+geoprocessing/data/*.tif
+*.tif
+geoprocessing/data/wdpa/*.zip
+
+# Keep lightweight pipeline results
+!geoprocessing/data/candidates.json
+!geoprocessing/data/candidates_summary.md
+
+# Frontend dependencies & build
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+node_modules/
+dist/
+build/
+
+# Logs and temporary scratch files
+*.log
+temp.json

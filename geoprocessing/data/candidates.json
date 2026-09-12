@@ -1,0 +1,666 @@
+{
+  "generated_at": "2026-09-12T16:41:37.821619+00:00",
+  "sweep_metadata": {
+    "step_deg": 0.1,
+    "lat_min": 11.5,
+    "lat_max": 18.5,
+    "lon_min": 74.0,
+    "lon_max": 78.5,
+    "total_points": 3266,
+    "p1_eligible": 1888,
+    "p1_excluded": 1378,
+    "target": 12,
+    "region_rows": 5,
+    "region_cols": 4,
+    "final_eligible": 10,
+    "final_excluded": 1,
+    "final_needs_review": 1,
+    "needs_review_rate_pct": 8.33,
+    "phase1_wall_time_s": 2316.6,
+    "phase2_wall_time_s": 1013.6,
+    "total_wall_time_s": 3330.2,
+    "selection_rule_version": "v1",
+    "selection_rule_frozen_date": "2026-09-12"
+  },
+  "selection_rule": "FROZEN v1 (2026-09-12): 5x4 region-grid diversity; top-Phase1-score-per-region; top 12 by Phase-1 score. Final ranking uses full Phase-2 AHP score. See generate_candidates.py docstring.",
+  "candidates": [
+    {
+      "rank": 1,
+      "latitude": 14.3,
+      "longitude": 77.4,
+      "status": "eligible",
+      "score": 0.727,
+      "score_100": 72.7,
+      "p1_score": 0.5919,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.6566,
+        "substation_dist_km": 0.9,
+        "transmission_line_dist_km": 0.21,
+        "landcost_proxy_score": 0.3826,
+        "t2m_celsius": 26.67,
+        "computed_derating_factor": 0.8813
+      },
+      "normalized_criteria": {
+        "ghi": 0.6566,
+        "substation": 0.9819,
+        "landcost": 0.3826,
+        "temp_derating": 0.333
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 0.97,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        2,
+        3
+      ]
+    },
+    {
+      "rank": 2,
+      "latitude": 14.0,
+      "longitude": 77.0,
+      "status": "eligible",
+      "score": 0.6746,
+      "score_100": 67.46,
+      "p1_score": 0.6223,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.6566,
+        "substation_dist_km": 12.1,
+        "transmission_line_dist_km": 6.06,
+        "landcost_proxy_score": 0.603,
+        "t2m_celsius": 25.15,
+        "computed_derating_factor": 0.8874
+      },
+      "normalized_criteria": {
+        "ghi": 0.6566,
+        "substation": 0.758,
+        "landcost": 0.603,
+        "temp_derating": 0.485
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 2.61,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        1,
+        2
+      ]
+    },
+    {
+      "rank": 3,
+      "latitude": 14.3,
+      "longitude": 77.0,
+      "status": "eligible",
+      "score": 0.6471,
+      "score_100": 64.71,
+      "p1_score": 0.6087,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.6566,
+        "substation_dist_km": 13.46,
+        "transmission_line_dist_km": 0.53,
+        "landcost_proxy_score": 0.5049,
+        "t2m_celsius": 25.83,
+        "computed_derating_factor": 0.8847
+      },
+      "normalized_criteria": {
+        "ghi": 0.6566,
+        "substation": 0.7307,
+        "landcost": 0.5049,
+        "temp_derating": 0.417
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 2.25,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 20,
+          "class_name": "Shrubland",
+          "suitability": "eligible",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        2,
+        2
+      ]
+    },
+    {
+      "rank": 4,
+      "latitude": 14.1,
+      "longitude": 76.0,
+      "status": "eligible",
+      "score": 0.6456,
+      "score_100": 64.56,
+      "p1_score": 0.6022,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.617,
+        "substation_dist_km": 8.88,
+        "transmission_line_dist_km": 3.49,
+        "landcost_proxy_score": 0.1556,
+        "t2m_celsius": 24.57,
+        "computed_derating_factor": 0.8897
+      },
+      "normalized_criteria": {
+        "ghi": 0.617,
+        "substation": 0.8224,
+        "landcost": 0.1556,
+        "temp_derating": 0.543
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 2.94,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        1,
+        1
+      ]
+    },
+    {
+      "rank": 5,
+      "latitude": 14.2,
+      "longitude": 75.0,
+      "status": "eligible",
+      "score": 0.6354,
+      "score_100": 63.54,
+      "p1_score": 0.5039,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4881,
+        "substation_dist_km": 3.24,
+        "transmission_line_dist_km": 2.52,
+        "landcost_proxy_score": 0.0937,
+        "t2m_celsius": 24.33,
+        "computed_derating_factor": 0.8907
+      },
+      "normalized_criteria": {
+        "ghi": 0.4881,
+        "substation": 0.9353,
+        "landcost": 0.0937,
+        "temp_derating": 0.567
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 0.27,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 30,
+          "class_name": "Grassland",
+          "suitability": "eligible",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        1,
+        0
+      ]
+    },
+    {
+      "rank": 6,
+      "latitude": 12.8,
+      "longitude": 77.8,
+      "status": "eligible",
+      "score": 0.6275,
+      "score_100": 62.75,
+      "p1_score": 0.5099,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4809,
+        "substation_dist_km": 4.42,
+        "transmission_line_dist_km": 1.3,
+        "landcost_proxy_score": 0.0788,
+        "t2m_celsius": 23.74,
+        "computed_derating_factor": 0.893
+      },
+      "normalized_criteria": {
+        "ghi": 0.4809,
+        "substation": 0.9116,
+        "landcost": 0.0788,
+        "temp_derating": 0.626
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 1.18,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 30,
+          "class_name": "Grassland",
+          "suitability": "eligible",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        0,
+        3
+      ]
+    },
+    {
+      "rank": 7,
+      "latitude": 14.0,
+      "longitude": 77.4,
+      "status": "eligible",
+      "score": 0.6073,
+      "score_100": 60.73,
+      "p1_score": 0.6175,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.6566,
+        "substation_dist_km": 16.49,
+        "transmission_line_dist_km": 1.19,
+        "landcost_proxy_score": 0.3051,
+        "t2m_celsius": 25.39,
+        "computed_derating_factor": 0.8864
+      },
+      "normalized_criteria": {
+        "ghi": 0.6566,
+        "substation": 0.6701,
+        "landcost": 0.3051,
+        "temp_derating": 0.461
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 2.4,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        1,
+        3
+      ]
+    },
+    {
+      "rank": 8,
+      "latitude": 14.3,
+      "longitude": 75.0,
+      "status": "needs_review",
+      "score": 0.5712,
+      "score_100": 57.12,
+      "p1_score": 0.5027,
+      "needs_review": true,
+      "needs_review_reasons": [
+        "Water-body buffer proximity unconfirmed: all Overpass API endpoints failed \u2014 manual or offline verification required"
+      ],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4881,
+        "substation_dist_km": 13.13,
+        "transmission_line_dist_km": 5.09,
+        "landcost_proxy_score": 0.2491,
+        "t2m_celsius": 24.39,
+        "computed_derating_factor": 0.8904
+      },
+      "normalized_criteria": {
+        "ghi": 0.4881,
+        "substation": 0.7373,
+        "landcost": 0.2491,
+        "temp_derating": 0.561
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 3.3,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 30,
+          "class_name": "Grassland",
+          "suitability": "eligible",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "needs_review",
+          "tripped": false
+        }
+      },
+      "region": [
+        2,
+        0
+      ]
+    },
+    {
+      "rank": 9,
+      "latitude": 16.8,
+      "longitude": 77.9,
+      "status": "eligible",
+      "score": 0.5535,
+      "score_100": 55.35,
+      "p1_score": 0.519,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.5447,
+        "substation_dist_km": 16.17,
+        "transmission_line_dist_km": 4.72,
+        "landcost_proxy_score": 0.2334,
+        "t2m_celsius": 25.84,
+        "computed_derating_factor": 0.8846
+      },
+      "normalized_criteria": {
+        "ghi": 0.5447,
+        "substation": 0.6766,
+        "landcost": 0.2334,
+        "temp_derating": 0.416
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 3.24,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        3,
+        3
+      ]
+    },
+    {
+      "rank": 10,
+      "latitude": 14.3,
+      "longitude": 76.1,
+      "status": "eligible",
+      "score": 0.5454,
+      "score_100": 54.54,
+      "p1_score": 0.5904,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.617,
+        "substation_dist_km": 22.53,
+        "transmission_line_dist_km": 0.67,
+        "landcost_proxy_score": 0.304,
+        "t2m_celsius": 25.16,
+        "computed_derating_factor": 0.8874
+      },
+      "normalized_criteria": {
+        "ghi": 0.617,
+        "substation": 0.5494,
+        "landcost": 0.304,
+        "temp_derating": 0.484
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 1.08,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        2,
+        1
+      ]
+    },
+    {
+      "rank": 11,
+      "latitude": 11.5,
+      "longitude": 77.1,
+      "status": "eligible",
+      "score": 0.2899,
+      "score_100": 28.99,
+      "p1_score": 0.5166,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4833,
+        "substation_dist_km": null,
+        "transmission_line_dist_km": null,
+        "landcost_proxy_score": 0.3163,
+        "t2m_celsius": 23.5,
+        "computed_derating_factor": 0.894
+      },
+      "normalized_criteria": {
+        "ghi": 0.4833,
+        "substation": 0.0,
+        "landcost": 0.3163,
+        "temp_derating": 0.65
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 3.35,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 20,
+          "class_name": "Shrubland",
+          "suitability": "eligible",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        0,
+        2
+      ]
+    },
+    {
+      "rank": 12,
+      "latitude": 15.8,
+      "longitude": 77.0,
+      "status": "excluded",
+      "score": null,
+      "score_100": null,
+      "p1_score": 0.5114,
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {},
+      "normalized_criteria": {},
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "slope": {
+          "mode": "centroid",
+          "value_pct": 1.42,
+          "tripped": false,
+          "threshold": "<= 5.0%"
+        },
+        "landuse": {
+          "mode": "centroid",
+          "class_code": 40,
+          "class_name": "Cropland",
+          "suitability": "eligible_penalised",
+          "tripped": false
+        },
+        "protected_buffer": {
+          "status": "excluded",
+          "tripped": true
+        }
+      },
+      "region": [
+        3,
+        2
+      ]
+    }
+  ]
+}
