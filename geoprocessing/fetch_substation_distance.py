@@ -34,6 +34,8 @@ Therefore:
   are NEVER substituted for an actual substation.
 """
 
+import os
+import re
 import math
 import threading
 import time
@@ -84,6 +86,16 @@ class GridConnectionInfo(NamedTuple):
     transmission_line_osm_id: Optional[str]
     low_confidence: bool
     confidence_reason: Optional[str]
+    nearest_generation_substation_dist_km: Optional[float] = None
+    generation_substation_name: Optional[str] = None
+    generation_substation_osm_id: Optional[str] = None
+    substation_operator: Optional[str] = None
+    substation_voltage_tag: Optional[str] = None
+    closer_untagged_osm_id: Optional[str] = None
+    closer_untagged_lat: Optional[float] = None
+    closer_untagged_lon: Optional[float] = None
+    closer_untagged_dist_km: Optional[float] = None
+    closer_untagged_tags: Optional[Dict[str, Any]] = None
 
 
 # ---------------------------------------------------------------------------
@@ -162,14 +174,47 @@ def _get_element_min_distance(lat: float, lon: float, el: dict) -> Tuple[float, 
 # ---------------------------------------------------------------------------
 
 OVERPASS_ENDPOINTS = [
+    "https://overpass.openstreetmap.fr/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
 OVERPASS_DELAYS = [2.0, 8.0, 20.0]
 
 _grid_cache: Dict[Tuple[float, float, float], GridConnectionInfo] = {}
 _grid_lock = threading.Lock()
+
+_local_bundle = None
+_bundle_lock = threading.Lock()
+
+
+def _get_local_bundle():
+    global _local_bundle
+    with _bundle_lock:
+        if _local_bundle is None:
+            try:
+                import geopandas as gpd
+                from shapely.strtree import STRtree
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                subs_p = os.path.join(base_dir, "data", "substations_karnataka.geojson")
+                lines_p = os.path.join(base_dir, "data", "lines_karnataka.geojson")
+                if os.path.exists(subs_p) and os.path.exists(lines_p):
+                    gdf_all = gpd.read_file(subs_p).to_crs(epsg=32643)
+                    gdf_q = gdf_all[(gdf_all["is_qualifying"] == True) & (gdf_all.get("is_generation", False) != True)].copy()
+                    gdf_gen = gdf_all[gdf_all.get("is_generation", False) == True].copy()
+                    gdf_lines = gpd.read_file(lines_p).to_crs(epsg=32643)
+                    _local_bundle = {
+                        "gdf_qualifying": gdf_q,
+                        "gdf_generation": gdf_gen,
+                        "gdf_all_subs": gdf_all,
+                        "gdf_lines": gdf_lines,
+                        "tree_qualifying": STRtree(gdf_q.geometry) if not gdf_q.empty else None,
+                        "tree_generation": STRtree(gdf_gen.geometry) if not gdf_gen.empty else None,
+                        "tree_all_subs": STRtree(gdf_all.geometry) if not gdf_all.empty else None,
+                        "tree_lines": STRtree(gdf_lines.geometry) if not gdf_lines.empty else None,
+                    }
+            except Exception:
+                _local_bundle = None
+    return _local_bundle
 
 
 def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> GridConnectionInfo:
@@ -204,34 +249,92 @@ def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> Grid
     out geom;
     """
 
-    data = None
-    last_err = None
+    req_key = f"OVERPASS_GRID: bbox={bbox} query={query.strip()}"
+    try:
+        from raw_cache import get_cached, save_cached, is_replay_mode
+    except ImportError:
+        from geoprocessing.raw_cache import get_cached, save_cached, is_replay_mode
 
-    for attempt, url in enumerate(OVERPASS_ENDPOINTS):
+    # Check if local geojson layers are available for instant offline evaluation
+    bundle = _get_local_bundle()
+    if bundle is not None:
         try:
-            headers = {'User-Agent': 'SolarPVKarnataka/1.2'}
-            response = requests.post(url, data={'data': query}, headers=headers, timeout=35)
-            if response.status_code == 200:
-                data = response.json()
-                break
-            else:
-                last_err = f"HTTP {response.status_code}: {response.text[:100]}"
-        except Exception as e:
-            last_err = str(e)
-
-        if attempt < len(OVERPASS_ENDPOINTS) - 1:
-            time.sleep(OVERPASS_DELAYS[attempt])
-
-    if data is None:
-        raise SubstationDataUnavailable(
-            f"Overpass API unreachable for substation query at ({lat}, {lon}): {last_err}"
+            from bulk_download_substations import query_grid_locally
+        except ImportError:
+            from geoprocessing.bulk_download_substations import query_grid_locally
+        loc_res = query_grid_locally(lat, lon, bundle, max_search_dist_km=delta * 111.0)
+        info = GridConnectionInfo(
+            substation_dist_km=loc_res["substation_dist_km"],
+            transmission_line_dist_km=loc_res["transmission_line_dist_km"],
+            nearest_any_substation_dist_km=loc_res["nearest_any_substation_dist_km"],
+            substation_name=loc_res["substation_name"],
+            substation_voltage_v=loc_res["substation_voltage_v"],
+            substation_osm_id=loc_res["substation_osm_id"],
+            transmission_line_osm_id=loc_res["transmission_line_osm_id"],
+            low_confidence=loc_res["low_confidence"],
+            confidence_reason=loc_res["confidence_reason"],
+            nearest_generation_substation_dist_km=loc_res["nearest_generation_substation_dist_km"],
+            generation_substation_name=loc_res["generation_substation_name"],
+            generation_substation_osm_id=loc_res["generation_substation_osm_id"],
+            substation_operator=loc_res.get("substation_operator"),
+            substation_voltage_tag=loc_res.get("substation_voltage_tag"),
+            closer_untagged_osm_id=loc_res.get("closer_untagged_osm_id"),
+            closer_untagged_lat=loc_res.get("closer_untagged_lat"),
+            closer_untagged_lon=loc_res.get("closer_untagged_lon"),
+            closer_untagged_dist_km=loc_res.get("closer_untagged_dist_km"),
+            closer_untagged_tags=loc_res.get("closer_untagged_tags"),
         )
+        with _grid_lock:
+            _grid_cache[cache_key] = info
+        return info
+
+    cached = get_cached(req_key)
+    if is_replay_mode():
+        if cached is not None:
+            data = cached
+        else:
+            raise SubstationDataUnavailable(
+                f"REPLAY mode active: missing cache for Overpass grid at ({lat}, {lon})"
+            )
+    elif cached is not None:
+        data = cached
+    else:
+        data = None
+        last_err = None
+
+        for attempt, url in enumerate(OVERPASS_ENDPOINTS):
+            try:
+                headers = {'User-Agent': 'SolarPVKarnataka/1.2'}
+                response = requests.post(url, data={'data': query}, headers=headers, timeout=35)
+                if response.status_code == 200:
+                    data = response.json()
+                    save_cached(req_key, data, {"service": "OVERPASS_GRID", "bbox": bbox, "lat": lat, "lon": lon})
+                    break
+                else:
+                    last_err = f"HTTP {response.status_code}: {response.text[:100]}"
+            except Exception as e:
+                last_err = str(e)
+
+            if attempt < len(OVERPASS_ENDPOINTS) - 1:
+                time.sleep(OVERPASS_DELAYS[attempt])
+
+        if data is None:
+            raise SubstationDataUnavailable(
+                f"Overpass API unreachable for substation query at ({lat}, {lon}): {last_err}"
+            )
 
     elements = data.get('elements', [])
+
+    from bulk_download_substations import _COMPILED_CAPTIVE_PATTERNS, load_power_plant_polygons_utm
+
+    plant_gdf_utm = load_power_plant_polygons_utm()
 
     # Track best matches
     best_qualifying_sub_dist = float('inf')
     best_qualifying_sub_el = None
+
+    best_generation_sub_dist = float('inf')
+    best_generation_sub_el = None
 
     best_any_sub_dist = float('inf')
     best_any_sub_el = None
@@ -245,27 +348,54 @@ def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> Grid
         voltage_v = parse_osm_voltage_v(tags.get('voltage'))
         substation_kind = tags.get('substation', '').lower()
 
-        dist, _ = _get_element_min_distance(lat, lon, el)
+        dist, closest_pt = _get_element_min_distance(lat, lon, el)
         if dist == float('inf'):
             continue
 
         if power_type == 'substation':
-            # Any substation
-            if dist < best_any_sub_dist:
-                best_any_sub_dist = dist
-                best_any_sub_el = el
+            # Check generation status
+            plant = (tags.get('plant:source') or tags.get('generator:source') or '').lower()
+            name = str(tags.get('name') or tags.get('operator') or tags.get('ref') or '').strip()
 
-            # Qualifying >= 33 kV substation check:
-            # Qualifies if voltage is explicitly >= 33,000 V OR tagged as transmission substation
-            is_qualifying = False
-            if voltage_v is not None and voltage_v >= 33000.0:
-                is_qualifying = True
-            elif substation_kind == 'transmission':
-                is_qualifying = True
+            is_gen = False
+            if substation_kind in ['generation', 'industrial', 'traction'] or 'solar' in plant or 'wind' in plant or 'generator' in tags:
+                is_gen = True
+            elif any(pat.search(name) for pat in _COMPILED_CAPTIVE_PATTERNS):
+                is_gen = True
+            elif plant_gdf_utm is not None and not plant_gdf_utm.empty and closest_pt is not None:
+                try:
+                    import geopandas as gpd
+                    from shapely.geometry import Point
+                    pt_utm = gpd.GeoSeries([Point(closest_pt[1], closest_pt[0])], crs="EPSG:4326").to_crs(epsg=32643).iloc[0]
+                    possible = list(plant_gdf_utm.sindex.intersection(pt_utm.bounds))
+                    for p_idx in possible:
+                        if pt_utm.intersects(plant_gdf_utm.geometry.iloc[p_idx]) or pt_utm.touches(plant_gdf_utm.geometry.iloc[p_idx]):
+                            is_gen = True
+                            break
+                except Exception:
+                    pass
 
-            if is_qualifying and dist < best_qualifying_sub_dist:
-                best_qualifying_sub_dist = dist
-                best_qualifying_sub_el = el
+            if is_gen:
+                if dist < best_generation_sub_dist:
+                    best_generation_sub_dist = dist
+                    best_generation_sub_el = el
+            else:
+                # Any non-generation substation
+                if dist < best_any_sub_dist:
+                    best_any_sub_dist = dist
+                    best_any_sub_el = el
+
+                # Primary qualifying >= 33 kV substation check:
+                # Qualifies if voltage is explicitly >= 33,000 V OR tagged as transmission substation
+                is_qualifying = False
+                if voltage_v is not None and voltage_v >= 33000.0:
+                    is_qualifying = True
+                elif substation_kind == 'transmission':
+                    is_qualifying = True
+
+                if is_qualifying and dist < best_qualifying_sub_dist:
+                    best_qualifying_sub_dist = dist
+                    best_qualifying_sub_el = el
 
         elif power_type == 'line':
             # Transmission lines: >= 33 kV, or untagged power=line (which are transmission in OSM)
@@ -276,6 +406,7 @@ def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> Grid
 
     # Extract substation details
     sub_dist = best_qualifying_sub_dist if best_qualifying_sub_dist != float('inf') else None
+    gen_dist = best_generation_sub_dist if best_generation_sub_dist != float('inf') else None
     any_sub_dist = best_any_sub_dist if best_any_sub_dist != float('inf') else None
     line_dist = best_line_dist if best_line_dist != float('inf') else None
 
@@ -287,6 +418,13 @@ def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> Grid
         sub_name = stags.get('name') or stags.get('operator') or stags.get('ref')
         sub_voltage = parse_osm_voltage_v(stags.get('voltage'))
         sub_id = f"{best_qualifying_sub_el.get('type')}/{best_qualifying_sub_el.get('id')}"
+
+    gen_name = None
+    gen_id = None
+    if best_generation_sub_el is not None:
+        gtags = best_generation_sub_el.get('tags', {})
+        gen_name = gtags.get('name') or gtags.get('operator') or gtags.get('ref')
+        gen_id = f"{best_generation_sub_el.get('type')}/{best_generation_sub_el.get('id')}"
 
     line_id = None
     if best_line_el is not None:
@@ -300,11 +438,11 @@ def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> Grid
         low_confidence = True
         if any_sub_dist is not None:
             confidence_reason = (
-                f"No confirmed >=33kV substation found within {delta*111:.0f} km, but an untagged "
+                f"No confirmed >=33kV non-generation substation found within {delta*111:.0f} km, but an untagged "
                 f"substation exists at {any_sub_dist:.2f} km. Field verification required."
             )
         else:
-            confidence_reason = f"No substation found within {delta*111:.0f} km in OSM."
+            confidence_reason = f"No non-generation substation found within {delta*111:.0f} km in OSM."
     elif any_sub_dist is not None and any_sub_dist < sub_dist:
         # An untagged substation is closer than the nearest confirmed >=33kV substation
         low_confidence = True
@@ -324,12 +462,16 @@ def get_grid_connection_info(lat: float, lon: float, delta: float = 0.5) -> Grid
         transmission_line_osm_id=line_id,
         low_confidence=low_confidence,
         confidence_reason=confidence_reason,
+        nearest_generation_substation_dist_km=round(gen_dist, 4) if gen_dist is not None else None,
+        generation_substation_name=gen_name,
+        generation_substation_osm_id=gen_id,
     )
 
     with _grid_lock:
         _grid_cache[cache_key] = res
 
     return res
+
 
 
 # ---------------------------------------------------------------------------
@@ -351,6 +493,14 @@ def get_transmission_line_distance_km(lat: float, lon: float) -> Optional[float]
     """
     info = get_grid_connection_info(lat, lon)
     return info.transmission_line_dist_km
+
+
+def get_generation_substation_distance_km(lat: float, lon: float) -> Optional[float]:
+    """
+    Return distance in km to nearest generation/captive/pooling substation (context only).
+    """
+    info = get_grid_connection_info(lat, lon)
+    return info.nearest_generation_substation_dist_km
 
 
 if __name__ == "__main__":

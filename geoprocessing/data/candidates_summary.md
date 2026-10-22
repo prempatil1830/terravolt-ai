@@ -1,33 +1,33 @@
 # Karnataka Solar PV — Selected Candidate Sites
 
-**Generated:** 2026-09-12 16:41 UTC  
+**Generated:** 2026-10-18 10:37 UTC  
 **Grid step:** 0.1deg (~11 km)  
 **Total grid points:** 3266  
-**Phase-1 eligible / excluded:** 1888 / 1378  
-**Phase-2 (final) eligible / excluded / needs_review:** 10 / 1 / 1  
+**Phase-1 eligible / excluded:** 377 / 2889  
+**Phase-2 (final) eligible / excluded / needs_review:** 9 / 0 / 3  
 
-> **Selection rule:** FROZEN v1 (2026-09-12): 5x4 region-grid diversity; top-Phase1-score-per-region; top 12 by Phase-1 score. Final ranking uses full Phase-2 AHP score. See generate_candidates.py docstring.
+> **Selection rule:** FROZEN v2 (2026-10-15): 5x4 region-grid diversity; region winners ranked by preliminary AHP score including substation distance (GHI 0.40, Substation 0.40, Temperature 0.10, renormalized to 1.0). Final evaluation applies full 4-criteria AHP.
 
 ## Selected Candidates (sorted by full AHP score)
 
-| Rank | Lat | Lon | AHP Score | /100 | GHI (kWh/m2/d) | Sub (km) | Tx line (km) | LC proxy | T2m (C) | Status |
-|------|-----|-----|-----------|------|----------------|----------|--------------|----------|---------|--------|
-| 1 | 14.3000 | 77.4000 | 0.727 | 72.7 | 5.6566 | 0.9 | 0.21 | 0.3826 | 26.67 | eligible |
-| 2 | 14.0000 | 77.0000 | 0.6746 | 67.46 | 5.6566 | 12.1 | 6.06 | 0.603 | 25.15 | eligible |
-| 3 | 14.3000 | 77.0000 | 0.6471 | 64.71 | 5.6566 | 13.46 | 0.53 | 0.5049 | 25.83 | eligible |
-| 4 | 14.1000 | 76.0000 | 0.6456 | 64.56 | 5.617 | 8.88 | 3.49 | 0.1556 | 24.57 | eligible |
-| 5 | 14.2000 | 75.0000 | 0.6354 | 63.54 | 5.4881 | 3.24 | 2.52 | 0.0937 | 24.33 | eligible |
-| 6 | 12.8000 | 77.8000 | 0.6275 | 62.75 | 5.4809 | 4.42 | 1.3 | 0.0788 | 23.74 | eligible |
-| 7 | 14.0000 | 77.4000 | 0.6073 | 60.73 | 5.6566 | 16.49 | 1.19 | 0.3051 | 25.39 | eligible |
-| 8 | 14.3000 | 75.0000 | 0.5712 | 57.12 | 5.4881 | 13.13 | 5.09 | 0.2491 | 24.39 | NEEDS_REVIEW |
-| 9 | 16.8000 | 77.9000 | 0.5535 | 55.35 | 5.5447 | 16.17 | 4.72 | 0.2334 | 25.84 | eligible |
-| 10 | 14.3000 | 76.1000 | 0.5454 | 54.54 | 5.617 | 22.53 | 0.67 | 0.304 | 25.16 | eligible |
-| 11 | 11.5000 | 77.1000 | 0.2899 | 28.99 | 5.4833 | None | None | 0.3163 | 23.5 | eligible |
-| 12 | 15.8000 | 77.0000 | 0.5114 | 51.14 | 5.5687 | - | - | - | 27.18 | excluded |
+| Rank | District | Lat | Lon | AHP Score | /100 | GHI (kWh/m2/d) | Sub (km) | Tx line (km) | LC proxy | T2m (C) | Status |
+|------|----------|-----|-----|-----------|------|----------------|----------|--------------|----------|---------|--------|
+| 1 | Chitradurga | 14.2000 | 76.5000 | 0.7091 | 70.91 | 5.617 | 1.78 | 0.25 | 0.2225 | 24.57 | eligible |
+| 2 | Bengaluru North | 13.2000 | 77.4000 | 0.6989 | 69.89 | 5.6083 | 3.78 | 0.94 | 0.233 | 23.74 | NEEDS_REVIEW |
+| 3 | Chitradurga | 14.4000 | 76.7000 | 0.6888 | 68.88 | 5.617 | 2.61 | 0.16 | 0.2118 | 25.83 | eligible |
+| 4 | Vijayanagara | 15.0000 | 76.1000 | 0.6747 | 67.47 | 5.617 | 4.87 | 0.26 | 0.2333 | 25.65 | NEEDS_REVIEW |
+| 5 | Raichur | 16.0000 | 76.9000 | 0.6714 | 67.14 | 5.5375 | 0.44 | 0.55 | 0.3167 | 27.18 | eligible |
+| 6 | Vijayapura | 16.3000 | 76.2000 | 0.6498 | 64.98 | 5.5202 | 0.98 | 0.14 | 0.1611 | 26.66 | eligible |
+| 7 | Bagalkote | 16.4000 | 75.1000 | 0.6246 | 62.46 | 5.4571 | 0.42 | 0.01 | 0.0364 | 25.86 | eligible |
+| 8 | Davanagere | 14.2000 | 75.6000 | 0.6198 | 61.98 | 5.4881 | 6.23 | 0.39 | 0.1313 | 23.87 | eligible |
+| 9 | Mysuru | 12.2000 | 76.6000 | 0.6124 | 61.24 | 5.413 | 4.88 | 1.12 | 0.248 | 23.86 | eligible |
+| 10 | Kalaburagi | 17.1000 | 76.8000 | 0.6063 | 60.63 | 5.4091 | 0.66 | 0.56 | 0.2022 | 27.23 | eligible |
+| 11 | Vijayapura | 17.2000 | 75.9000 | 0.5992 | 59.92 | 5.461 | 4.12 | 1.4 | 0.1306 | 26.53 | eligible |
+| 12 | Dharwad | 15.4000 | 75.1000 | 0.5968 | 59.68 | 5.4247 | 4.76 | 1.25 | 0.1346 | 24.84 | NEEDS_REVIEW |
 
 ## needs_review count
 
-Of the **12** selected candidates, **1** returned `needs_review` (Overpass unreachable during water-body check). These require offline water-body verification before final eligibility.
+Of the **12** selected candidates, **3** returned `needs_review` (Site #2: primary substation voltage untagged in OSM; Sites #4 and #12: untagged substation closer than confirmed >=33kV). These require field / KPTCL SLD verification before final eligibility.
 
 ## Notes
 - Phase-1 screening uses slope + land-use + WDPA (all local).

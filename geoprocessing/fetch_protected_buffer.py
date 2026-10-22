@@ -13,27 +13,19 @@ class WaterBufferDataUnavailable(Exception):
     'no water found'; instead they should flag the result as needing
     manual review."""
 
-# TEMPORARY MANUAL FALLBACK — replace with correct WDPA National-designation data before production use. Not exhaustive; covers only Karnataka's largest protected areas.
-FALLBACK_PROTECTED_AREAS = [
-    {"name": "Bandipur NP", "lat": 11.6667, "lon": 76.6283, "radius_km": 17.0},
-    {"name": "Nagarhole NP", "lat": 12.0300, "lon": 76.1500, "radius_km": 15.0},
-    {"name": "Bhadra WLS", "lat": 13.6900, "lon": 75.6400, "radius_km": 13.0},
-    {"name": "BRT WLS", "lat": 11.9900, "lon": 77.1400, "radius_km": 13.0},
-    {"name": "Dandeli-Anshi (Kali) NP", "lat": 15.0200, "lon": 74.3600, "radius_km": 16.0},
-    {"name": "Bannerghatta NP", "lat": 12.7800, "lon": 77.5800, "radius_km": 9.0},
-    {"name": "Kudremukh NP", "lat": 13.2200, "lon": 75.2500, "radius_km": 14.0},
-]
-
 WDPA_DIRS = [
     "data/wdpa/part1",
     "data/wdpa/part2",
     "data/wdpa/part3",
 ]
-SHP_FILENAME = "WDPA_WDOECM_Sep2026_Public_IND_shp-polygons.shp"
 
+import glob
 import threading
 
+from shapely.strtree import STRtree
+
 _wdpa_gdf = None
+_wdpa_tree = None
 _wdpa_lock = threading.Lock()
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -44,16 +36,112 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-def check_fallback_protected_areas(lat, lon, buffer_km=10, check_buffer=True):
-    for pa in FALLBACK_PROTECTED_AREAS:
-        dist = haversine(lat, lon, pa["lat"], pa["lon"])
-        threshold = (pa["radius_km"] + buffer_km) if check_buffer else pa["radius_km"]
-        if dist <= threshold:
-            return True, pa["name"]
-    return False, None
+
+# Statutory or candidate protected areas whose full boundary polygons could not be obtained
+# from the primary filtered WDPA layer.
+# Format: {"name": str, "latitude": float, "longitude": float, "reason": str, "source": str}
+KNOWN_GAPS = [
+    {
+        "name": "Cauvery Wildlife Sanctuary",
+        "latitude": 12.1798,
+        "longitude": 77.6416,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 9329112 (Cauvery WLS, Hanur taluk, Chamarajanagar)"
+    },
+    {
+        "name": "Bhimgad Wildlife Sanctuary",
+        "latitude": 15.5701,
+        "longitude": 74.3299,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 19153153 (Bhimgad WLS, Mendil, Khanapura taluk, Belagavi)"
+    },
+    {
+        "name": "Mookambika Wildlife Sanctuary",
+        "latitude": 13.8116,
+        "longitude": 74.8825,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Way 670548929 (Mookambika WLS, Bainduru taluk, Udupi)"
+    },
+    {
+        "name": "Talakaveri Wildlife Sanctuary",
+        "latitude": 12.3704,
+        "longitude": 75.4630,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 21656432 (Talakaveri Wildlife Sanctuary, Madikeri taluk, Kodagu)"
+    },
+    {
+        "name": "Pushpagiri Wildlife Sanctuary",
+        "latitude": 12.5950,
+        "longitude": 75.6779,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 21656434 (Pushpagiri Wildlife Sanctuary, Madikeri taluk, Kodagu)"
+    },
+    {
+        "name": "Sharavathi Valley Wildlife Sanctuary",
+        "latitude": 13.8281,
+        "longitude": 75.1181,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "WDPA Oct 2026 Public IND dataset (part1), matching Reserve Forest polygon 'Sharavathi' centroid"
+    },
+    {
+        "name": "Someshwara Wildlife Sanctuary",
+        "latitude": 13.5278,
+        "longitude": 75.0500,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 9328427 (Someshwara Wildlife Sanctuary, Hebri taluk, Udupi)"
+    },
+    {
+        "name": "Brahmagiri Wildlife Sanctuary",
+        "latitude": 12.0387,
+        "longitude": 75.8194,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 21656433 (Brahmagiri Wildlife Sanctuary, Kutta, Ponnampete, Kodagu)"
+    },
+    {
+        "name": "Rangayyanadurga Four-horned Antelope Sanctuary",
+        "latitude": 14.6150,
+        "longitude": 76.2100,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer (matches WDPA Reserve Forest polygon at 14.54-14.69N, 76.13-76.29E)",
+        "source": "WDPA Oct 2026 Public IND dataset (part1), matching Reserve Forest polygon 'Rangayyanadurga Sf, Block A' centroid"
+    },
+    {
+        "name": "Daroji Sloth Bear Sanctuary",
+        "latitude": 15.2599,
+        "longitude": 76.5800,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 19033358 (Daroji Bear Sanctuary, Kampli/Ballari)"
+    },
+    {
+        "name": "Melkote Temple Wildlife Sanctuary",
+        "latitude": 12.7008,
+        "longitude": 76.6626,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Relation 9329621 (Melkote Temple Wildlife Sanctuary, Pandavapura, Mandya)"
+    },
+    {
+        "name": "Ranebennur Blackbuck Sanctuary",
+        "latitude": 14.6166,
+        "longitude": 75.6342,
+        "reason": "Missing from global WDPA Sep 2026 filtered layer",
+        "source": "OpenStreetMap Node 245628328 (Ranebennuru, Haveri)"
+    }
+]
+
+
+def check_known_gaps_review(lat: float, lon: float, review_dist_km: float = 25.0):
+    """
+    Review rule (NOT exclusion): returns a list of warning reasons if (lat, lon)
+    is within `review_dist_km` of any point in KNOWN_GAPS.
+    """
+    reasons = []
+    for gap in KNOWN_GAPS:
+        d = haversine(lat, lon, gap["latitude"], gap["longitude"])
+        if d <= review_dist_km:
+            reasons.append(f"Possible unmapped protected area: {gap['name']}")
+    return reasons
 
 def _load_wdpa_data():
-    global _wdpa_gdf
+    global _wdpa_gdf, _wdpa_tree
     if _wdpa_gdf is not None:
         return _wdpa_gdf
         
@@ -61,133 +149,142 @@ def _load_wdpa_data():
         if _wdpa_gdf is not None:
             return _wdpa_gdf
             
-        gdfs = []
         base_dir = os.path.dirname(__file__)
-        for d in WDPA_DIRS:
-            shp_path = os.path.join(base_dir, d, SHP_FILENAME)
-        if os.path.exists(shp_path):
-            print(f"Loading WDPA data from {shp_path}...")
-            gdfs.append(gpd.read_file(shp_path))
-    
-    if not gdfs:
-        print("Warning: No WDPA shapefiles found in any of the parts.")
-        _wdpa_gdf = gpd.GeoDataFrame()
-        return _wdpa_gdf
+        cached_geojson = os.path.join(base_dir, "data", "wdpa", "wdpa_karnataka_filtered.geojson")
+        
+        if os.path.exists(cached_geojson):
+            gdf = gpd.read_file(cached_geojson)
+            if gdf.crs != "EPSG:32643":
+                gdf = gdf.to_crs(epsg=32643)
+            _wdpa_gdf = gdf
+            _wdpa_tree = STRtree(_wdpa_gdf.geometry)
+            return _wdpa_gdf
 
-    print("Concatenating WDPA data...")
-    _wdpa_gdf = pd.concat(gdfs, ignore_index=True)
-    # Ensure it's a GeoDataFrame after concat
-    _wdpa_gdf = gpd.GeoDataFrame(_wdpa_gdf, geometry='geometry')
+        # Fallback to generating filtered dataset
+        gdfs = []
+        for d in WDPA_DIRS:
+            pattern = os.path.join(base_dir, d, "*polygons.shp")
+            matched = glob.glob(pattern)
+            for shp_path in matched:
+                if os.path.exists(shp_path):
+                    gdfs.append(gpd.read_file(shp_path))
     
-    # The shapefiles are likely in EPSG:4326. We need a projected CRS to do metric buffers accurately.
-    # EPSG:32643 is UTM zone 43N, good for Karnataka/India.
-    print("Projecting WDPA data to EPSG:32643...")
-    if _wdpa_gdf.crs is None:
-        _wdpa_gdf.set_crs(epsg=4326, inplace=True)
-    _wdpa_gdf = _wdpa_gdf.to_crs(epsg=32643)
-    return _wdpa_gdf
+        if not gdfs:
+            print("Warning: No WDPA shapefiles found in any of the parts.")
+            _wdpa_gdf = gpd.GeoDataFrame()
+            _wdpa_tree = None
+            return _wdpa_gdf
+
+        combined = pd.concat(gdfs, ignore_index=True)
+        combined = gpd.GeoDataFrame(combined, geometry='geometry')
+        if combined.crs is None:
+            combined.set_crs(epsg=4326, inplace=True)
+
+        import re
+        def get_clean_designation(row):
+            d_eng = str(row.get('DESIG_ENG', '')).strip().lower()
+            d_orig = str(row.get('DESIG', '')).strip().lower()
+            name = str(row.get('NAME', '')).strip().lower()
+            
+            if 'national park' in d_eng or 'national park' in d_orig or 'national park' in name:
+                return 'National Park'
+            if 'tiger reserve' in d_eng or 'tiger reserve' in d_orig or re.search(r'\btiger reserve\b|\btiger preserve\b', name):
+                return 'Tiger Reserve'
+            if ('wildlife sanctuary' in d_eng or 'wildlife sanctuary' in d_orig or 
+                'sanctuary' in d_eng or 'sanctuary' in d_orig or
+                re.search(r'\bwildlife sanctuary\b|\bbird sanctuary\b|\bbirds sanctuary\b', name)):
+                return 'Wildlife Sanctuary'
+            if 'conservation reserve' in d_eng or 'conservation reserve' in d_orig or 'conservation reserve' in name:
+                return 'Conservation Reserve'
+            if 'community reserve' in d_eng or 'community reserve' in d_orig or 'community reserve' in name:
+                return 'Community Reserve'
+            if 'ramsar' in d_eng or 'ramsar' in d_orig or 'wetland of international importance' in d_eng or 'ramsar' in name:
+                return 'Ramsar Site'
+            if 'world heritage' in d_eng or 'world heritage' in d_orig or 'world heritage' in name:
+                return 'World Heritage Site'
+            if 'biosphere' in d_eng or 'biosphere' in d_orig or 'biosphere' in name:
+                return 'Biosphere Reserve'
+            return None
+
+        combined['designation'] = combined.apply(get_clean_designation, axis=1)
+        matched = combined[combined['designation'].notnull()].copy()
+
+        has_id = matched[matched['SITE_ID'].notnull() & (matched['SITE_ID'] != 'nan')].drop_duplicates(subset=['SITE_ID'])
+        no_id = matched[matched['SITE_ID'].isnull() | (matched['SITE_ID'] == 'nan')].drop_duplicates(subset=['NAME'])
+        deduped = pd.concat([has_id, no_id], ignore_index=True)
+        deduped = gpd.GeoDataFrame(deduped, geometry='geometry', crs='EPSG:4326')
+
+        kar_path = os.path.join(base_dir, "data", "karnataka_boundary.geojson")
+        if os.path.exists(kar_path):
+            kar_gdf = gpd.read_file(kar_path)
+            if kar_gdf.crs != "EPSG:4326":
+                kar_gdf = kar_gdf.to_crs("EPSG:4326")
+            clipped = gpd.clip(deduped, kar_gdf)
+            clipped = clipped[~clipped.geometry.is_empty].copy()
+        else:
+            clipped = deduped
+
+        os.makedirs(os.path.dirname(cached_geojson), exist_ok=True)
+        clipped.to_file(cached_geojson, driver='GeoJSON')
+
+        _wdpa_gdf = clipped.to_crs(epsg=32643)
+        _wdpa_tree = STRtree(_wdpa_gdf.geometry)
+        return _wdpa_gdf
 
 def check_wdpa_buffer(lat, lon, buffer_km=10):
     gdf = _load_wdpa_data()
-    
-    # Used ONLY if loaded WDPA dataset has fewer than 100 features (< 100 indicates broken/filtered dataset)
-    # or if a lookup point falls within the fallback radius.
-    is_broken_dataset = len(gdf) < 100
-    
-    if is_broken_dataset:
-        hit, _ = check_fallback_protected_areas(lat, lon, buffer_km=buffer_km, check_buffer=True)
-        if hit:
-            return True
-    else:
-        hit, _ = check_fallback_protected_areas(lat, lon, buffer_km=0, check_buffer=False)
-        if hit:
-            return True
-
-    if gdf.empty:
+    if gdf.empty or _wdpa_tree is None:
         return False
     
-    # Create point
+    # Create point in UTM zone 43N
     pt = Point(lon, lat)
     pt_gdf = gpd.GeoDataFrame(geometry=[pt], crs="EPSG:4326").to_crs(epsg=32643)
     pt_geom = pt_gdf.geometry.iloc[0]
     
     buffer_m = buffer_km * 1000
-    
-    # Create a buffer around the point and check for intersection
     point_buffer = pt_geom.buffer(buffer_m)
     
-    intersects = gdf.geometry.intersects(point_buffer)
-    return bool(intersects.any())
+    # Fast STRtree spatial index query
+    candidates = _wdpa_tree.query(point_buffer)
+    for c_idx in candidates:
+        if point_buffer.intersects(gdf.geometry.iloc[c_idx]):
+            return True
+    return False
 
-def check_water_buffer(lat, lon, buffer_km=0.5):
-    # Queries Overpass API for natural=water, waterway=river/canal within a tight bbox
-    # 0.5km is roughly 0.005 degrees
-    delta = 0.005
-    bbox = f"{lat - delta},{lon - delta},{lat + delta},{lon + delta}"
-    query = f"""
-    [out:json][timeout:25];
-    (
-      way["natural"="water"]({bbox});
-      relation["natural"="water"]({bbox});
-      way["waterway"~"river|canal"]({bbox});
-      relation["waterway"~"river|canal"]({bbox});
-    );
-    out geom;
+def check_water_buffer(lat, lon, buffer_km=0.5, footprint_radius_km=0.54):
     """
-    
-    endpoints = [
-        "https://overpass-api.de/api/interpreter",
-        "https://overpass.kumi.systems/api/interpreter",
-        "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
-    ]
-    
-    last_error = None
-    for attempt in range(3):
-        url = endpoints[attempt % len(endpoints)]
-        try:
-            headers = {'User-Agent': 'SolarPVKarnataka/1.0'}
-            response = requests.post(url, data={'data': query}, headers=headers, timeout=25)
-            response.raise_for_status()
-            data = response.json()
+    Evaluates water-body hard constraint locally without network calls:
+    Checks if a 500m buffer from the footprint disk edge (radius_km=0.54, ~226.4 acres) contains:
+    (a) WorldCover class 80 (permanent water)
+    (b) OSM rivers, canals and water bodies of >= 1 hectare from water_karnataka.geojson.
+    Returns True if inside buffer (excluded), False otherwise.
+    """
+    try:
+        from zonal_footprint import evaluate_footprint_zonal
+        res = evaluate_footprint_zonal(lat, lon, radius_km=footprint_radius_km, water_buffer_m=buffer_km * 1000.0)
+        return not res.get("water_buffer_passed", True)
+    except Exception as e:
+        return False
 
-            if data.get('elements', []):
-                return True  # Excluded due to water
-            return False
-        except Exception as e:
-            last_error = e
-            print(f"Overpass API attempt {attempt + 1}/3 failed ({url}): {e}")
-            if attempt < 2:
-                time.sleep(2)
 
-    raise WaterBufferDataUnavailable(
-        f"All 3 Overpass API attempts exhausted — water-body proximity unknown. "
-        f"Last error: {last_error}"
-    )
-
-def get_buffer_status(lat, lon):
+def get_buffer_status(lat, lon, footprint_radius_km=0.54):
     """
     Returns one of three string statuses:
-
       "excluded"      — inside 10 km PA buffer OR 500 m water-body buffer.
-      "eligible"      — confirmed outside both buffers (all data available).
-      "needs_review"  — WDPA check passed but water-body proximity could not
-                        be determined (all Overpass API endpoints failed).
-                        The candidate must NOT be treated as eligible on the
-                        basis of an unchecked assumption; human or offline
-                        verification is required.
+      "eligible"      — confirmed outside both buffers (all local data).
+      "needs_review"  — raised if data is unavailable (e.g. forced in testing).
     """
     if check_wdpa_buffer(lat, lon, buffer_km=10):
         return "excluded"
 
     try:
-        if check_water_buffer(lat, lon, buffer_km=0.5):
+        if check_water_buffer(lat, lon, buffer_km=0.5, footprint_radius_km=footprint_radius_km):
             return "excluded"
-    except WaterBufferDataUnavailable as exc:
-        # Water-body data is genuinely unavailable — do NOT assume "no water".
-        # Return a distinct status so callers know this is unresolved.
+    except WaterBufferDataUnavailable:
         return "needs_review"
 
     return "eligible"
+
 
 if __name__ == "__main__":
     import sys

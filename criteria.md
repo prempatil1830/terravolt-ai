@@ -18,15 +18,15 @@ No data has been fetched at this stage. This is a design-specification document 
 | **Source** | NASA POWER (Prediction Of Worldwide Energy Resources) API |
 | **Source URL** | https://power.larc.nasa.gov/api/temporal/climatology/point |
 | **Parameter code** | `ALLSKY_SFC_SW_DWN` (all-sky surface shortwave downward irradiance) |
-| **Spatial resolution** | ~0.5° × 0.5° (~55 km grid); interpolated to analysis resolution |
-| **Temporal coverage** | 30-year climatological average (1994–2023) |
+| **Spatial resolution** | 1 x 1 degree grid (about 110 km); interpolated to analysis resolution |
+| **Temporal coverage** | 20-year climatological average (2001–2020, per API header) |
 | **Access** | Free, no API key required; JSON response |
 
 ### Role in MCDM
 GHI is the primary energy-yield driver. Higher GHI directly increases annual energy
 production (AEP) and therefore project revenue.
 
-NASA POWER 1994–2023 climatology for nine validation points across Karnataka and
+NASA POWER 2001–2020 climatology for nine validation points across Karnataka and
 adjacent Rajasthan reveals a narrower and regionally different pattern than commonly
 cited in general Karnataka solar literature: the range observed is roughly **5.29
 (coastal, Mangalore) to 5.61 kWh/m²/day (central plateau, Tumakuru/Chikkaballapur)**.
@@ -38,12 +38,12 @@ ground-calibrated atlas products and show a more pronounced northward GHI gradie
 This is an **open discrepancy between NASA POWER and other public atlases, not yet
 resolved**. It may reflect differences in base period (NASA POWER uses 2001–2020
 for the pre-computed climatology), cloud-fraction modelling differences, or the
-~55 km grid smoothing disproportionately affecting the arid north. **A PVGIS
+1 x 1 degree grid (about 110 km) smoothing disproportionately affecting the arid north. **A PVGIS
 cross-check should be added in Phase 2 geoprocessing to bias-correct or at minimum
 sanity-check NASA POWER GHI values before final site scoring.**
 
 ### Known Limitations
-- **Coarse spatial resolution (~55 km):** The NASA POWER grid cannot resolve
+- **Coarse spatial resolution (1 x 1 degree grid (about 110 km)):** The NASA POWER grid cannot resolve
   localised orographic shading caused by the Western Ghats ridgeline. Cells
   straddling the Ghats escarpment will average an unrealistically high GHI for
   the leeward side. Sites in Dakshina Kannada, Kodagu, and Hassan districts that
@@ -58,13 +58,13 @@ sanity-check NASA POWER GHI values before final site scoring.**
   values diverge from general Karnataka solar atlas expectations (see Role in MCDM
   above); if SRRA or PVGIS data becomes accessible, it should be used to
   bias-correct NASA POWER values before scoring.
-- **Grid-cell duplication risk:** Candidate sites closer together than the ~55 km
+- **Grid-cell duplication risk:** Candidate sites closer together than the 1 x 1 degree grid (about 110 km)
   native grid resolution will receive identical GHI values. This was confirmed
   empirically during validation testing: Raichur and Yadgir (~66 km apart) returned
   byte-identical annual GHI (5.5447), as did Tumakuru and Chikkaballapur (~65 km
   apart, 5.6083). This means GHI has limited power to discriminate between
   geographically close candidates in the final 8–15 site shortlist. Where two
-  shortlisted sites fall within the same ~55 km grid cell, GHI must not be used as
+  shortlisted sites fall within the same 1 x 1 degree grid (about 110 km) cell, GHI must not be used as
   a tiebreaker; differentiation must come from other criteria.
 
 ---
@@ -73,45 +73,31 @@ sanity-check NASA POWER GHI values before final site scoring.**
 
 | Field | Value |
 |---|---|
-| **Type** | Hard constraint — exclude cells where slope > 5% |
+| **Type** | Hard constraint — exclude footprint disks where usable fraction (<5% slope) < 80% |
 | **Unit** | Percentage slope (rise / run × 100) |
-| **Source** | SRTM (Shuttle Radar Topography Mission) DEM, 1-arc-second (~30 m) |
-| **Source URL** | https://earthexplorer.usgs.gov/ (SRTM 1 Arc-Second Global, product ID SRTM1N) |
-| **Alternate source** | https://dwtkns.com/srtm30m/ (tile-level direct download) |
-| **Spatial resolution** | 30 m; resampled to 250 m after slope derivation |
-| **Vertical accuracy** | ±16 m absolute (90th percentile, per NASA SRTM mission specs) |
-| **Access** | Free, USGS EarthExplorer account required for bulk download |
+| **Source** | Copernicus DEM GLO-30 (AWS Open Data), processed with a $3 \times 3$ mean smoothing filter |
+| **Source URL** | https://copernicus-dem-30m.s3.amazonaws.com / https://registry.opendata.aws/copernicus-dem/ |
+| **Alternate / Previous source** | SRTM 1-arc-second (~30 m; USGS EarthExplorer / dwtkns — note: unavailable without login) |
+| **Spatial resolution** | 30 m native pixel; derived from $3 \times 3$ mean-smoothed DEM (~90 m effective spatial scale) to filter high-frequency DSM surface roughness |
+| **Vertical accuracy** | <4 m absolute (90% linear error, Copernicus DEM mission specs) |
+| **Access** | Free, public access via AWS S3 Cloud-Optimized GeoTIFF; no authentication or login required |
 
 ### Exclusion Threshold & Justification
-Slope > 5% is excluded. Justification:
+Footprint disks must achieve at least 80% usable area with slope $\le 5.0\%$. Justification:
 
-1. **Civil engineering cost:** It is commonly cited that fixed-tilt racking above 5%
-   slope requires custom ballast or piling. A figure of ₹15–25 lakh/MW in additional
-   cost is stated here, but this is an **unverified estimate** — no specific MNRE
-   document is cited by name, year, or URL (the reference "MNRE benchmark costing
-   (2023)" could not be located for confirmation). This cost justification should be
-   treated as a plausible industry default only; it should be replaced with a
-   properly cited source or removed before any final methodology writeup.
-2. **Inter-row shading geometry:** On slopes >5%, standard fixed-tilt N–S row
-   spacing calculations (for Karnataka latitude ~14°N) can no longer be applied
-   uniformly without row-by-row adjustment.
-3. **Precedent in literature:** Sánchez-Lozano et al. (2013, *Renewable and
-   Sustainable Energy Reviews*) and Uyan (2013, *Renewable and Sustainable Energy
-   Reviews*) are real, topically relevant GIS-AHP solar-siting papers. However,
-   the specific 5% slope threshold used in this project has **not been independently
-   confirmed against their full text** — both are paywalled and were not directly
-   accessed during project scoping. The 5% figure should be treated as a reasonable
-   industry-common default pending verification, not a confirmed literature match.
+1. **Unverified Project Assumption:** The 5.0% maximum slope threshold remains an **unverified project design assumption**. While commonly cited in utility solar feasibility studies, no primary empirical cost curve or official MNRE standard formally fixing 5.0% has been independently verified.
+2. **Civil engineering & racking cost:** Industry rules of thumb state that fixed-tilt racking above 5% slope requires terracing, grading, or custom piling (often estimated at ₹15–25 lakh/MW). This remains an unverified engineering estimate pending geotechnical site investigation.
+3. **Inter-row shading geometry:** On slopes >5%, standard fixed-tilt N–S row spacing calculations (for Karnataka latitude ~14°N) require custom row-by-row tilt-pitch adjustments to avoid inter-row shading.
+4. **Precedent in literature:** Sánchez-Lozano et al. (2013) and Uyan (2013) are real, topically relevant GIS-MCDM solar papers, but their specific slope thresholds were adopted as scoping heuristics rather than legally mandated cutoffs.
+
+### Calibration vs. Validation Note
+- **Calibration (Not Validation):** Evaluating slope over 21 operating solar parks in the region (e.g., Pavagada, Varavoo Kaval, Guttigoli) to evaluate raw vs. 3x3-smoothed DEM slope is **empirical screening calibration**, NOT independent validation of the ranking model. Its purpose is solely to ensure the physical feasibility envelope does not reject proven operational terrain due to panel-row surface roughness in Copernicus DSM. It does not validate the AHP criteria weightings.
+- **Effective Scale:** The $3 \times 3$ mean filter operates over a 3-pixel window, yielding an effective spatial scale of approximately **90 m**, which suppresses panel arrays, fencing, and berm micro-roughness while preserving true regional terrain gradients. Known steep terrain (such as the Western Ghats escarpment at Madikeri, 14.5% mean slope, and rugged granite ridges) remains decisively excluded.
 
 ### Known Limitations
-- SRTM vertical accuracy of ±16 m implies derived slope uncertainty of approximately
-  ±1–2 percentage points at 30 m resolution. Cells with computed slope of 4–6% sit
-  in an ambiguous zone; a sensitivity buffer (exclude 3–7%) is recommended in Phase 2.
-- SRTM contains data voids in steep terrain (e.g., Ghats escarpments); these are
-  filled with interpolated values that may not accurately represent true terrain.
-  Voids should be documented in processing logs.
-- SRTM captures terrain as of 2000. Quarrying and large earthworks since 2000 are
-  not reflected.
+- Copernicus DEM GLO-30 is a digital surface model (DSM) capturing canopy and structures, not a bare-earth DTM.
+- High vertical accuracy (<4 m) is maintained across regional plains, but steep escarpment edges may present interpolation artefacts.
+- Free AWS Open Data Cloud-Optimized GeoTIFFs provide open reproducibility without authentication barriers.
 
 ---
 
@@ -215,7 +201,8 @@ convert distance to monetised evacuation cost in Phase 2.
 | **Type** | Hard constraint — buffer exclusion zone |
 | **Unit** | Binary (inside buffer = excluded; outside = eligible) |
 | **Buffer — National Parks & Wildlife Sanctuaries** | **10 km from boundary** |
-| **Buffer — Rivers, lakes, reservoirs** | **500 m from boundary** |
+| **Buffer — Rivers, lakes, reservoirs, ponds ≥ 1 ha, WorldCover 80** | **500 m from footprint disk edge (conservative project setback assumption)** |
+| **Canals & Streams** | **Excluded only if crossing footprint disk itself; non-crossing distance recorded as context** |
 
 ### Data Sources
 
@@ -241,11 +228,10 @@ convert distance to monetised evacuation cost in Phase 2.
 This project uses a 10 km buffer as a deliberately conservative screening threshold — well above the 1 km binding SC minimum — chosen to also cover the upper range of the 2011 MoEF guideline's notification width and reduce false inclusions pending site-specific ESZ verification. This is a conservative project choice, not a claimed legal mandate.
 
 **Water bodies — 500 m:**
-- Karnataka River Regulation Act and EIA Notification 2006 (amended 2020) require
-  minimum 500 m setback from river banks for large projects.
-- Consistent with Central Water Commission flood-zone guidance for Deccan Plateau rivers.
-- For major reservoirs (KRS, Tungabhadra, Almatti), Karnataka Irrigation Act restricts
-  construction within submergence boundary + 300 m; 500 m is conservatively compliant.
+- The 500 m buffer is a conservative project setback assumption, not a claimed legal requirement.
+- Provides an engineering and environmental safety margin against floodplains, bund instability, and seasonal water level variations.
+- Applied from the footprint disk edge to WorldCover class 80 permanent water and OSM rivers, reservoirs, and tanks/ponds >= 1 ha.
+- For canals and streams, exclusion applies only if they cross the footprint disk itself; otherwise, the distance is recorded as context.
 
 ### Known Limitations
 - **WDPA completeness:** Some recently declared Karnataka State Biodiversity Heritage
@@ -322,8 +308,8 @@ before any investment decision is made on the output.
 | **Source** | NASA POWER API |
 | **Source URL** | https://power.larc.nasa.gov/api/temporal/climatology/point |
 | **Parameter codes** | `T2M` (Temperature at 2 m, °C) and `T2M_MAX` (daily max temperature) |
-| **Temporal coverage** | 30-year climatological average (1994–2023) |
-| **Spatial resolution** | ~0.5° × 0.5° (~55 km); same resolution as GHI (Criterion 1) |
+| **Temporal coverage** | 20-year climatological average (2001–2020, per API header) |
+| **Spatial resolution** | 0.5 x 0.625 degree |
 | **Access** | Free, no API key required; same API call as GHI fetch |
 
 ### Role in MCDM
@@ -364,7 +350,7 @@ Higher ambient temperature → derating_factor further below 1.0 → higher cost
 in AHP matrix.
 
 ### Known Limitations
-- **Coarse spatial resolution (same as GHI):** The ~55 km NASA POWER grid cannot
+- **Coarse spatial resolution:** The 0.5 x 0.625 degree NASA POWER grid cannot
   resolve elevation-driven temperature inversions or urban heat island effects.
 - **Cell temperature approximation is simplified:** The NOCT correction (+28°C above
   ambient) does not account for wind speed, mounting configuration, or tracker vs.
@@ -373,8 +359,8 @@ in AHP matrix.
   derating table above, the variance in annual average temperature across Karnataka
   translates to a negligible ~1.2% difference in panel efficiency. This criterion may
   be too flat to warrant a significant weight in the final MCDM.
-- **Interaction with Criterion 1 (GHI):** Temperature derating and GHI both suffer from
-  the same ~55 km NASA POWER resolution limitation, and both showed limited discriminating
+- **Interaction with Criterion 1 (GHI):** Temperature derating (0.5 x 0.625 degree) and GHI (1 x 1 degree grid (about 110 km)) both suffer from
+  coarse NASA POWER resolution limitations, and both showed limited discriminating
   power in validation testing (GHI: ~0.32 kWh/m²/day spread across 9 points; derating:
   ~1.2% spread across 4 points). These are two independently weak signals, not a
   compounding correlated advantage.
@@ -395,7 +381,7 @@ therefore most at risk of over-scoring. Validation testing against NASA POWER do
 *not* support the premise that northern Karnataka scores highest on GHI (see Criterion
 1, Role in MCDM); GHI has therefore been removed from this regional compounding
 argument pending Phase 2 atlas reconciliation. Temperature data from NASA POWER
-remains subject to the same ~55 km coarseness caveat as GHI.
+remains subject to its coarse 0.5 x 0.625 degree resolution caveat.
 
 Candidates in northern Karnataka with high suitability scores driven primarily by
 land-use and substation criteria should be flagged with a "low data confidence" tag
@@ -409,19 +395,19 @@ later scoring/matrix phase.
 
 | # | Criterion | Type | Suggested Weight Class | Source | Completeness for Karnataka |
 |---|---|---|---|---|---|
-| 1 | Solar Irradiation (GHI) | Benefit | Medium ¹ | NASA POWER | ★★★☆☆ Coarse 55 km grid; grid-cell duplication risk |
-| 2 | Slope | Hard constraint | — | SRTM 30 m | ★★★★☆ Good; void-fill caveats in Ghats |
+| 1 | Solar Irradiation (GHI) | Benefit | Medium ¹ | NASA POWER | ★★★☆☆ Coarse 1 x 1 degree grid (about 110 km); grid-cell duplication risk |
+| 2 | Slope | Hard constraint | — | Copernicus DEM GLO-30 (AWS Open Data) | ★★★★☆ Good; superior to SRTM; no login required |
 | 3 | Land-use suitability | Hard constraint | — | ESA WorldCover 2021 (10 m) | ★★★☆☆ Open forest mis-classification risk |
 | 4 | Distance to substation | Benefit | Medium | OpenStreetMap | ★★☆☆☆ Substantially incomplete in rural Karnataka |
 | 5 | Protected areas & water bodies buffer | Hard constraint | — | WDPA + OSM | ★★★☆☆ Post-2020 protected areas may be missing |
 | 6 | Land-cost proxy | Cost | Low | OSM distance-to-town proxy | ★★☆☆☆ Very rough — proxy only |
-| 7 | Temperature derating | Cost | Low ² | NASA POWER | ★★★☆☆ Coarse 55 km grid; flat signal |
+| 7 | Temperature derating | Cost | Low ² | NASA POWER | ★★★☆☆ 0.5 x 0.625 degree grid; flat signal |
 
 > **Completeness rating key:** ★★★★★ = comprehensive · ★★★★☆ = good with minor gaps ·
 > ★★★☆☆ = usable with significant caveats · ★★☆☆☆ = coarse proxy / known incompleteness ·
 > ★☆☆☆☆ = not recommended for final decision without supplementary data
 
-> ¹ **GHI weight downgraded from High to Medium** for two reasons: (1) the ~55 km
+> ¹ **GHI weight downgraded from High to Medium** for two reasons: (1) the 1 x 1 degree grid (about 110 km)
 > native grid resolution causes geographically close candidate sites to receive
 > byte-identical GHI values (empirically confirmed — Raichur/Yadgir and
 > Tumakuru/Chikkaballapur), removing GHI's discriminating power within clusters;

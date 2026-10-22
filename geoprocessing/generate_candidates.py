@@ -22,19 +22,22 @@ Phase 2 — Full Evaluation (12 selected sites only)
   • recomputes the full 4-criteria AHP score
   12 Overpass calls is well within API limits.
 
-SELECTION RULE (FROZEN v1, 2026-09-12)
+SELECTION RULE (FROZEN v2, 2026-10-15)
 ---------------------------------------
   a. Take only Phase-1 "eligible" grid points.
   b. Divide the bbox into REGION_ROWS × REGION_COLS spatial bins.
-  c. Per bin, keep the highest-scoring (Phase-1 preliminary score) point.
-  d. Sort bin winners by preliminary score descending; take top TARGET.
-  e. Tie-break: score desc → lat asc → lon asc (deterministic).
-  Rule must not change before the final experiment without versioning.
+  c. Per bin, identify the top preliminary candidates.
+  d. Rank candidates by a preliminary AHP score that includes substation
+     distance (GHI 0.40, Substation 0.40, Temperature derating 0.10, renormalized to 1.0).
+     Preliminary score = (w_ghi * norm_ghi + w_sub * norm_sub + w_temp * norm_temp) / (w_ghi + w_sub + w_temp).
+  e. Sort regional winners by preliminary AHP score descending; take top TARGET.
+  f. Tie-break: score desc → lat asc → lon asc (deterministic).
+  Note: Land-cost proxy and 500m water buffer remain deferred to Phase 2.
 
 USAGE
 -----
   cd geoprocessing
-  python generate_candidates.py [--step 0.1] [--workers 8] [--target 12]
+  python generate_candidates.py [--step 0.1] [--workers 8] [--target 12] [--rescore-existing]
 """
 
 import argparse
@@ -51,11 +54,27 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 from ahp_engine import compute_ahp_weights
+from fetch_boundary import check_boundary_constraint, is_in_karnataka
 from fetch_slope import get_slope
 from fetch_landuse import get_suitability_full
-from fetch_protected_buffer import check_wdpa_buffer
-from fetch_nasa_power import fetch_climatology, NASAPowerRateLimitExceeded
-from score_candidate import score_candidate, normalize_ghi, normalize_temp_derating
+from fetch_protected_buffer import check_wdpa_buffer, check_known_gaps_review
+from fetch_district import get_district_name
+from zonal_footprint import FOOTPRINT_RADIUS_KM, evaluate_footprint_zonal
+from fetch_nasa_power import (
+    fetch_climatology,
+    NASAPowerRateLimitExceeded,
+    reset_live_nasa_calls,
+    get_live_nasa_calls,
+)
+from raw_cache import reset_cache_write_counter, get_cache_entries_written
+from fetch_substation_distance import get_substation_distance_km
+from score_candidate import (
+    score_candidate,
+    compute_footprint_sample_points,
+    normalize_ghi,
+    normalize_substation,
+    normalize_temp_derating,
+)
 
 # ---------------------------------------------------------------------------
 # Bounding box
@@ -64,7 +83,7 @@ LAT_MIN, LAT_MAX = 11.5, 18.5
 LON_MIN, LON_MAX = 74.0, 78.5
 
 # ---------------------------------------------------------------------------
-# Selection rule parameters (FROZEN v1)
+# Selection rule parameters (FROZEN v2)
 # ---------------------------------------------------------------------------
 REGION_ROWS    = 5
 REGION_COLS    = 4
@@ -72,12 +91,20 @@ TARGET_MIN     = 8
 TARGET_MAX     = 15
 DEFAULT_TARGET = 12
 
-SELECTION_RULE_DESC = (
+SELECTION_RULE_V1_DESC = (
     "FROZEN v1 (2026-09-12): 5x4 region-grid diversity; "
-    "top-Phase1-score-per-region; top 12 by Phase-1 score. "
-    "Final ranking uses full Phase-2 AHP score. "
-    "See generate_candidates.py docstring."
+    "top-Phase1-score-per-region (GHI + Temp only); top 12 by Phase-1 score. "
+    "Final ranking uses full Phase-2 AHP score."
 )
+
+SELECTION_RULE_V2_DESC = (
+    "FROZEN v2 (2026-10-15): 5x4 region-grid diversity; "
+    "region winners ranked by preliminary AHP score including substation distance "
+    "(GHI 0.40, Substation 0.40, Temperature 0.10, renormalized to 1.0). "
+    "Final evaluation applies full 4-criteria AHP."
+)
+
+SELECTION_RULE_DESC = SELECTION_RULE_V2_DESC
 
 OUTPUT_DIR      = os.path.join(_HERE, "data")
 CANDIDATES_JSON = os.path.join(OUTPUT_DIR, "candidates.json")
@@ -129,46 +156,32 @@ def screen_point(
         "tripped_constraints": [],
     }
 
-    # Constraint A: Slope (local GeoTIFF)
+    # Filter 0: Karnataka State Boundary (>= 90% disk inside boundary)
     try:
-        slope_pct = get_slope(lat, lon)
-        if slope_pct > 5.0:
-            base["tripped_constraints"].append(
-                f"Slope ({slope_pct:.2f}%) > 5.0%"
-            )
+        passed_b, disk_frac, b_reason = check_boundary_constraint(
+            lat, lon, radius_km=FOOTPRINT_RADIUS_KM, min_disk_fraction=0.90
+        )
+        if not passed_b:
+            base["tripped_constraints"].append(b_reason)
+            base["status"] = "excluded"
+            base["exclusion_reason"] = b_reason
+            return base
     except Exception as e:
-        pass  # data gap — don't exclude, let Phase 2 decide
-
-    if base["tripped_constraints"]:
-        base["status"] = "excluded"
-        base["exclusion_reason"] = "; ".join(base["tripped_constraints"])
-        return base
-
-    # Constraint B: Land-use (local GeoTIFF)
-    try:
-        lu = get_suitability_full(lat, lon)
-        if lu.suitability == "excluded":
-            base["tripped_constraints"].append(
-                f"Land-use: {lu.class_name} (code {lu.class_code})"
-            )
-    except Exception:
         pass
 
-    if base["tripped_constraints"]:
-        base["status"] = "excluded"
-        base["exclusion_reason"] = "; ".join(base["tripped_constraints"])
-        return base
-
-    # Constraint C: WDPA buffer (local shapefile, no Overpass)
+    # Footprint screening as zonal fractions (slope >= 80%, landuse >= 80%, PA disk buffer >= 10 km, water buffer >= 500m)
     try:
-        if check_wdpa_buffer(lat, lon, buffer_km=10):
-            base["tripped_constraints"].append("Inside Protected Area buffer (10 km)")
-    except Exception:
-        pass
-
-    if base["tripped_constraints"]:
+        fp_res = evaluate_footprint_zonal(lat, lon, radius_km=FOOTPRINT_RADIUS_KM, min_usable_fraction=0.80)
+        base["footprint_zonal"] = fp_res
+        if not fp_res["is_feasible"]:
+            base["status"] = "excluded"
+            base["exclusion_reason"] = "; ".join(fp_res["tripped_constraints"])
+            base["tripped_constraints"].extend(fp_res["tripped_constraints"])
+            return base
+    except Exception as e:
         base["status"] = "excluded"
-        base["exclusion_reason"] = "; ".join(base["tripped_constraints"])
+        base["exclusion_reason"] = f"Footprint evaluation error: {e}"
+        base["tripped_constraints"].append(str(e))
         return base
 
     # Preliminary score: GHI + temperature (NASA POWER only)
@@ -198,30 +211,204 @@ def screen_point(
 
 
 # ---------------------------------------------------------------------------
-# Candidate selection (FROZEN RULE v1)
+# Candidate selection (FROZEN RULE v2)
 # ---------------------------------------------------------------------------
 
 def select_candidates(
     eligible: List[Dict[str, Any]],
     target: int,
-) -> List[Dict[str, Any]]:
-    """FROZEN SELECTION RULE v1 — see module docstring."""
-    best: Dict[Tuple[int, int], Dict[str, Any]] = {}
+    w_sub: float = 0.40,
+    w_ghi: float = 0.40,
+    w_temp: float = 0.10,
+    rule_version: str = "v2",
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Candidate selection using 5x4 regional diversity.
+    Under FROZEN v2: Region winners are evaluated with substation distance and
+    ranked by preliminary AHP score (GHI 0.40, Substation 0.40, Temp 0.10).
+    Returns (selected_v2, shortlist_v1_for_comparison).
+    """
+    # Load local grid layers for instant local evaluation
+    from bulk_download_substations import query_grid_locally
+    import geopandas as gpd
+    from shapely.strtree import STRtree
+
+    subs_path = os.path.join(OUTPUT_DIR, "substations_karnataka.geojson")
+    lines_path = os.path.join(OUTPUT_DIR, "lines_karnataka.geojson")
+    
+    if os.path.exists(subs_path) and os.path.exists(lines_path):
+        gdf_all = gpd.read_file(subs_path).to_crs(epsg=32643)
+        gdf_q = gdf_all[(gdf_all["is_qualifying"] == True) & (gdf_all.get("is_generation", False) != True)].copy()
+        gdf_gen = gdf_all[gdf_all.get("is_generation", False) == True].copy()
+        gdf_lines = gpd.read_file(lines_path).to_crs(epsg=32643)
+        index_bundle = {
+            "gdf_qualifying": gdf_q,
+            "gdf_generation": gdf_gen,
+            "gdf_all_subs": gdf_all,
+            "gdf_lines": gdf_lines,
+            "tree_qualifying": STRtree(gdf_q.geometry) if not gdf_q.empty else None,
+            "tree_generation": STRtree(gdf_gen.geometry) if not gdf_gen.empty else None,
+            "tree_all_subs": STRtree(gdf_all.geometry) if not gdf_all.empty else None,
+            "tree_lines": STRtree(gdf_lines.geometry) if not gdf_lines.empty else None,
+        }
+    else:
+        index_bundle = None
+
+    total_w = w_ghi + w_sub + w_temp
+    scored_all: List[Dict[str, Any]] = []
+
+    print("\n" + "=" * 70)
+    print("EVALUATING SUBSTATION DISTANCES ACROSS ALL FEASIBLE CANDIDATES")
+    print("=" * 70)
+
     for pt in eligible:
-        region = get_region(pt["latitude"], pt["longitude"])
-        existing = best.get(region)
-        if existing is None or (pt["p1_score"] or 0) > (existing["p1_score"] or 0):
-            best[region] = pt
-    ranked = sorted(
-        best.values(),
-        key=lambda r: (-(r["p1_score"] or 0), r["latitude"], r["longitude"]),
+        cand = dict(pt)
+        lat, lon = cand["latitude"], cand["longitude"]
+
+        if index_bundle is not None:
+            g_res = query_grid_locally(lat, lon, index_bundle, max_search_dist_km=60.0)
+            sub_dist = g_res["substation_dist_km"]
+            line_dist = g_res["transmission_line_dist_km"]
+            cand["grid_info"] = g_res
+        else:
+            try:
+                sub_dist = get_substation_distance_km(lat, lon)
+            except Exception:
+                sub_dist = None
+            line_dist = None
+
+        norm_ghi = normalize_ghi(cand.get("p1_ghi", 5.0))
+        norm_sub = normalize_substation(sub_dist)
+        norm_temp = normalize_temp_derating(cand.get("p1_t2m", 25.0))
+        p1_v2 = (w_ghi * norm_ghi + w_sub * norm_sub + w_temp * norm_temp) / total_w
+
+        cand["p1_score_v2"] = round(p1_v2, 4)
+        cand["substation_dist_km"] = sub_dist
+        cand["transmission_line_dist_km"] = line_dist
+        gen_dist = g_res.get("nearest_generation_substation_dist_km") if index_bundle is not None else None
+        cand["nearest_generation_substation_dist_km"] = gen_dist
+        cand["nearest generation substation (context only)"] = gen_dist
+        cand["region"] = get_region(lat, lon)
+        scored_all.append(cand)
+
+    # Group by region
+    region_pools: Dict[Tuple[int, int], List[Dict[str, Any]]] = {}
+    for cand in scored_all:
+        region_pools.setdefault(cand["region"], []).append(cand)
+
+    print("\n" + "=" * 70)
+    print("PER-REGION SCORED CANDIDATE COUNTS (Full Feasible Pool):")
+    print("=" * 70)
+    for reg in sorted(region_pools.keys()):
+        print(f"  Region {reg}: {len(region_pools[reg])} feasible points scored")
+    print("=" * 70)
+
+    # Pick regional winners for v1 (top by p1_score)
+    v1_winners = {}
+    for reg, pool in region_pools.items():
+        v1_winners[reg] = max(pool, key=lambda r: (r.get("p1_score") or 0, -r["latitude"], -r["longitude"]))
+
+    v1_ranked = sorted(
+        v1_winners.values(),
+        key=lambda r: (-(r.get("p1_score") or 0), r["latitude"], r["longitude"]),
     )
-    return ranked[:target]
+
+    if rule_version == "v1":
+        return v1_ranked[:target], v1_ranked[:target]
+
+    # Pick regional winners for v2 (top by preliminary AHP score with substation distance)
+    v2_winners = {}
+    for reg, pool in region_pools.items():
+        v2_winners[reg] = max(pool, key=lambda r: (r.get("p1_score_v2") or 0, -r["latitude"], -r["longitude"]))
+
+    v2_ranked = sorted(
+        v2_winners.values(),
+        key=lambda r: (-(r.get("p1_score_v2") or 0), r["latitude"], r["longitude"]),
+    )
+
+    chosen_v1 = v1_ranked[:target]
+    chosen_v2 = v2_ranked[:target]
+
+    # Compute v1-vs-v2 set difference
+    v1_coords = set((round(c["latitude"], 4), round(c["longitude"], 4)) for c in chosen_v1)
+    v2_coords = set((round(c["latitude"], 4), round(c["longitude"], 4)) for c in chosen_v2)
+    sym_diff = v1_coords.symmetric_difference(v2_coords)
+
+    # Old 12 (pre-electrode-exclusion / pre-final-rules shortlist)
+    old_12_coords = {
+        (14.2, 76.5), (13.3, 77.9), (14.5, 76.5), (15.0, 76.1),
+        (16.0, 76.9), (16.3, 76.2), (16.0, 77.4), (14.2, 75.6),
+        (16.0, 75.1), (17.1, 76.8), (17.2, 75.9), (15.7, 75.1)
+    }
+    common_coords = old_12_coords.intersection(v2_coords)
+    dropped_coords = old_12_coords - v2_coords
+    added_coords = v2_coords - old_12_coords
+
+    print("\n" + "=" * 70)
+    print("OLD 12 vs NEW 12 SHORTLIST SET DIFFERENCE (Final Rules & Electrode Exclusion)")
+    print("=" * 70)
+    print(f"  Old 12 Shortlist ({len(old_12_coords)}): {sorted(list(old_12_coords))}")
+    print(f"  New 12 Shortlist ({len(v2_coords)}): {sorted(list(v2_coords))}")
+    print(f"  Common Sites ({len(common_coords)}): {sorted(list(common_coords))}")
+    print(f"  Dropped from Old ({len(dropped_coords)}): {sorted(list(dropped_coords))}")
+    print(f"  Added in New ({len(added_coords)}): {sorted(list(added_coords))}")
+    print(f"  Total Symmetric Set Difference: {len(old_12_coords ^ v2_coords)} coordinates")
+    print("=" * 70)
+
+    print("\n" + "=" * 70)
+    print("V1 vs V2 SHORTLIST SET DIFFERENCE")
+    print("=" * 70)
+    print(f"  Frozen v1 Shortlist Coordinates ({len(v1_coords)}): {sorted(list(v1_coords))}")
+    print(f"  Frozen v2 Shortlist Coordinates ({len(v2_coords)}): {sorted(list(v2_coords))}")
+    print(f"  Total Symmetric Set Difference: {len(sym_diff)} coordinates")
+    if sym_diff:
+        print(f"  Coordinates in v1 only: {sorted(list(v1_coords - v2_coords))}")
+        print(f"  Coordinates in v2 only: {sorted(list(v2_coords - v1_coords))}")
+    else:
+        print("  0 coordinates changed set membership across the shortlist (identical candidate pool; internal rankings shifted).")
+    print("=" * 70 + "\n")
+
+    return chosen_v2, chosen_v1
 
 
 # ---------------------------------------------------------------------------
 # Output writers
 # ---------------------------------------------------------------------------
+
+def generate_candidate_reasons(s: Dict[str, Any]) -> List[str]:
+    """
+    Generates candidate justification reasons strictly from computed fields.
+    Removes marketing adjectives and claims not present in measured data.
+    """
+    reasons = []
+    raw = s.get("raw_criteria", {})
+    ghi = raw.get("ghi_kwh_m2_day")
+    sub_dist = raw.get("substation_dist_km")
+    tx_dist = raw.get("transmission_line_dist_km")
+    temp = raw.get("t2m_celsius")
+
+    constraints = s.get("constraints", {})
+    slope_info = constraints.get("slope", {})
+    slope_mean = slope_info.get("mean_pct")
+    slope_max = slope_info.get("max_pct")
+
+    lu_info = constraints.get("landuse", {})
+    centroid_class = lu_info.get("centroid_class")
+
+    if ghi is not None:
+        reasons.append(f"GHI: {ghi:.3f} kWh/m²/day")
+    if sub_dist is not None:
+        reasons.append(f"Primary substation distance: {sub_dist:.2f} km")
+    if tx_dist is not None:
+        reasons.append(f"Transmission corridor distance: {tx_dist:.2f} km")
+    if slope_mean is not None:
+        reasons.append(f"Footprint mean slope: {slope_mean:.2f}% (max: {slope_max:.2f}%)")
+    if centroid_class:
+        reasons.append(f"Land cover: {centroid_class}")
+    if temp is not None:
+        reasons.append(f"Ambient temperature (T2m): {temp:.2f}°C")
+    return reasons
+
 
 def write_json(selected: List[Dict[str, Any]], meta: Dict[str, Any]) -> None:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -236,17 +423,27 @@ def write_json(selected: List[Dict[str, Any]], meta: Dict[str, Any]) -> None:
             "rank": rank,
             "latitude": s["latitude"],
             "longitude": s["longitude"],
+            "district": get_district_name(s["latitude"], s["longitude"]),
             "status": s["status"],
             "score": s.get("score"),
             "score_100": s.get("score_100"),
             "p1_score": s.get("p1_score"),
+            "p1_score_v2": s.get("p1_score_v2"),
+            "exclusion_reason": s.get("exclusion_reason") or (
+                "; ".join(s.get("tripped_constraints", [])) if s.get("tripped_constraints") else (
+                    "Inside Water Body buffer (500 m) or Protected Area buffer (10 km)" if s.get("constraints", {}).get("protected_buffer", {}).get("tripped") else None
+                )
+            ),
+            "tripped_constraints": s.get("tripped_constraints", []),
             "needs_review": s.get("needs_review", False),
             "needs_review_reasons": s.get("needs_review_reasons", []),
             "raw_criteria": s.get("raw_criteria", {}),
+            "substation_details": s.get("substation_details", {}),
             "normalized_criteria": s.get("normalized_criteria", {}),
             "weights": s.get("weights", {}),
             "constraints": s.get("constraints", {}),
             "region": list(get_region(s["latitude"], s["longitude"])),
+            "exact_reasons": generate_candidate_reasons(s),
         })
     with open(CANDIDATES_JSON, "w") as f:
         json.dump(out, f, indent=2)
@@ -271,11 +468,12 @@ def write_md(selected: List[Dict[str, Any]], meta: Dict[str, Any]) -> None:
         "",
         "## Selected Candidates (sorted by full AHP score)",
         "",
-        "| Rank | Lat | Lon | AHP Score | /100 | GHI (kWh/m2/d) | Sub (km) | Tx line (km) | LC proxy | T2m (C) | Status |",
-        "|------|-----|-----|-----------|------|----------------|----------|--------------|----------|---------|--------|",
+        "| Rank | District | Lat | Lon | AHP Score | /100 | GHI (kWh/m2/d) | Sub (km) | Tx line (km) | LC proxy | T2m (C) | Status |",
+        "|------|----------|-----|-----|-----------|------|----------------|----------|--------------|----------|---------|--------|",
     ]
     for rank, s in enumerate(selected, 1):
         raw = s.get("raw_criteria", {})
+        dist = get_district_name(s["latitude"], s["longitude"])
         ghi = raw.get("ghi_kwh_m2_day", s.get("p1_ghi", "-"))
         sub = raw.get("substation_dist_km", "-")
         line = raw.get("transmission_line_dist_km", "-")
@@ -285,7 +483,7 @@ def write_md(selected: List[Dict[str, Any]], meta: Dict[str, Any]) -> None:
         sc100 = s.get("score_100") or (round(float(sc)*100,2) if sc != "-" else "-")
         st  = "NEEDS_REVIEW" if s["status"] == "needs_review" else s["status"]
         lines.append(
-            f"| {rank} | {s['latitude']:.4f} | {s['longitude']:.4f} "
+            f"| {rank} | {dist} | {s['latitude']:.4f} | {s['longitude']:.4f} "
             f"| {round(float(sc),4) if sc != '-' else '-'} "
             f"| {round(float(sc100),2) if sc100 != '-' else '-'} "
             f"| {ghi} | {sub} | {line} "
@@ -317,6 +515,15 @@ def write_md(selected: List[Dict[str, Any]], meta: Dict[str, Any]) -> None:
 
 def run_sweep(step: float, max_workers: int, target: int) -> None:
     t0 = time.time()
+    start_time_iso = datetime.now(timezone.utc).isoformat()
+    reset_live_nasa_calls()
+    reset_cache_write_counter()
+
+    print("=" * 70)
+    print("LIVE GRID SWEEP START")
+    print(f"  Start Time (UTC): {start_time_iso}")
+    print("  Configuration   : Network ON, Raw Cache Active, Throttle 50 req/min")
+    print("=" * 70 + "\n")
 
     print("Computing AHP weights ...")
     ahp_res = compute_ahp_weights(verbose=False)
@@ -366,13 +573,13 @@ def run_sweep(step: float, max_workers: int, target: int) -> None:
                   f"({res['latitude']:.1f},{res['longitude']:.1f}) "
                   f"{res['status']}", flush=True)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futs = {ex.submit(screen_point, lat, lon, w_ghi, w_temp): (lat, lon)
-                for lat, lon in grid}
-        for fut in concurrent.futures.as_completed(futs):
-            res = fut.result()
-            results.append(res)
-            _cb(res)
+    import gc
+    for lat, lon in grid:
+        res = screen_point(lat, lon, w_ghi, w_temp)
+        results.append(res)
+        _cb(res)
+        if done % 200 == 0:
+            gc.collect()
 
     t1 = time.time()
     p1_eligible = [r for r in results if r["status"] == "phase1_eligible"]
@@ -389,17 +596,35 @@ def run_sweep(step: float, max_workers: int, target: int) -> None:
     # ── Candidate selection ─────────────────────────────────────────────────
     p1_sorted = sorted(p1_eligible,
                        key=lambda r: (-(r["p1_score"] or 0), r["latitude"], r["longitude"]))
-    selected_p1 = select_candidates(p1_sorted, target_n)
+    w_sub = w.get("substation", 0.40)
+    selected_p1, shortlist_v1 = select_candidates(
+        p1_sorted, target_n, w_sub=w_sub, w_ghi=w_ghi, w_temp=w_temp, rule_version="v2"
+    )
 
     regions_covered = len(set(get_region(r["latitude"], r["longitude"]) for r in p1_eligible))
-    print(f"\n=== CANDIDATE SELECTION (FROZEN RULE v1) ===")
+    print(f"\n=== CANDIDATE SELECTION (FROZEN RULE v2: PRELIMINARY AHP WITH SUBSTATION) ===")
     print(f"  Regions with eligible hits : {regions_covered}/{REGION_ROWS*REGION_COLS}")
     print(f"  Selected for Phase 2       : {len(selected_p1)}")
-    for i, s in enumerate(selected_p1, 1):
-        print(f"    {i:>2}. ({s['latitude']:.4f}, {s['longitude']:.4f})  "
-              f"p1_score={s['p1_score']:.4f}  "
-              f"GHI={s.get('p1_ghi','?')}  T2m={s.get('p1_t2m','?')}  "
-              f"region={get_region(s['latitude'],s['longitude'])}")
+
+    print("\n" + "=" * 96)
+    print("SHORTLIST COMPARISON: FROZEN v1 (GHI+Temp) vs FROZEN v2 (GHI+Substation+Temp)")
+    print("=" * 96)
+    print(f"{'Rk':<3} | {'OLD SHORTLIST (FROZEN v1 - GHI+Temp)':<42} | {'NEW SHORTLIST (FROZEN v2 - GHI+Sub+Temp)':<45}")
+    print(f"{'':<3} | {'Coord':<16} {'P1 v1':<8} {'Region':<8} {'Sub km':<7} | {'Coord':<16} {'P1 v2':<8} {'Region':<8} {'Sub km':<7}")
+    print("-" * 96)
+    for i in range(max(len(shortlist_v1), len(selected_p1))):
+        s1 = shortlist_v1[i] if i < len(shortlist_v1) else {}
+        s2 = selected_p1[i] if i < len(selected_p1) else {}
+        c1 = f"({s1.get('latitude',0):.2f}, {s1.get('longitude',0):.2f})"
+        c2 = f"({s2.get('latitude',0):.2f}, {s2.get('longitude',0):.2f})"
+        p1 = f"{s1.get('p1_score',0):.4f}"
+        p2 = f"{s2.get('p1_score_v2',0):.4f}"
+        r1 = str(get_region(s1.get('latitude',0), s1.get('longitude',0)))
+        r2 = str(get_region(s2.get('latitude',0), s2.get('longitude',0)))
+        sub1 = str(s1.get('substation_dist_km', '-'))
+        sub2 = str(s2.get('substation_dist_km', '-'))
+        print(f"{i+1:<3} | {c1:<16} {p1:<8} {r1:<8} {sub1:<7} | {c2:<16} {p2:<8} {r2:<8} {sub2:<7}")
+    print("=" * 96 + "\n")
 
     # ── Phase 2: full score_candidate on selected sites ─────────────────────
     print(f"\n=== PHASE 2: Full AHP score + water-buffer ({len(selected_p1)} sites) ===")
@@ -408,10 +633,29 @@ def run_sweep(step: float, max_workers: int, target: int) -> None:
         lat, lon = s["latitude"], s["longitude"]
         print(f"  [{i}/{len(selected_p1)}] ({lat:.4f}, {lon:.4f}) ...", end=" ", flush=True)
         try:
-            full = score_candidate(lat, lon, ahp_weights=w, footprint_radius_km=None)
+            full = score_candidate(lat, lon, ahp_weights=w, footprint_radius_km=FOOTPRINT_RADIUS_KM)
             full["p1_score"] = s["p1_score"]
+            full["p1_score_v2"] = s.get("p1_score_v2")
             full["p1_ghi"]   = s.get("p1_ghi")
             full["p1_t2m"]   = s.get("p1_t2m")
+            full["footprint_zonal"] = s.get("footprint_zonal")
+            
+            # Substation confidence from grid query
+            grid_info = s.get("grid_info")
+            if grid_info and grid_info.get("low_confidence"):
+                full["needs_review"] = True
+                conf_reason = grid_info.get("confidence_reason")
+                if conf_reason and conf_reason not in full["needs_review_reasons"]:
+                    full["needs_review_reasons"].append(conf_reason)
+
+            # Assign single authoritative final status
+            if full["needs_review"]:
+                full["status"] = "needs_review"
+            elif full["tripped_constraints"]:
+                full["status"] = "excluded"
+            else:
+                full["status"] = "eligible"
+
             print(f"{full['status']}  score={full['score']}")
             final.append(full)
         except Exception as exc:
@@ -465,6 +709,20 @@ def run_sweep(step: float, max_workers: int, target: int) -> None:
               f"{str(region):>8}  {st}")
 
     # ── Write outputs ────────────────────────────────────────────────────────
+    end_time_iso = datetime.now(timezone.utc).isoformat()
+    live_nasa_calls = get_live_nasa_calls()
+    cache_entries_written = get_cache_entries_written()
+
+    print("\n" + "=" * 70)
+    print("LIVE SWEEP EXECUTION STATS")
+    print("=" * 70)
+    print(f"  Sweep Start Time (UTC)         : {start_time_iso}")
+    print(f"  Sweep End Time (UTC)           : {end_time_iso}")
+    print(f"  Total Duration                 : {t2 - t0:.2f}s")
+    print(f"  Number of Live NASA POWER Calls: {live_nasa_calls}")
+    print(f"  Number of Raw Cache Writes     : {cache_entries_written}")
+    print("=" * 70 + "\n")
+
     meta = {
         "step_deg": step,
         "lat_min": LAT_MIN, "lat_max": LAT_MAX,
@@ -481,8 +739,12 @@ def run_sweep(step: float, max_workers: int, target: int) -> None:
         "phase1_wall_time_s": round(t1 - t0, 1),
         "phase2_wall_time_s": round(t2 - t1, 1),
         "total_wall_time_s": round(t2 - t0, 1),
-        "selection_rule_version": "v1",
-        "selection_rule_frozen_date": "2026-09-12",
+        "selection_rule_version": "v2",
+        "selection_rule_frozen_date": "2026-10-15",
+        "sweep_start_time": start_time_iso,
+        "sweep_end_time": end_time_iso,
+        "live_nasa_power_calls": live_nasa_calls,
+        "cache_entries_written": cache_entries_written,
     }
     print()
     write_json(final_sorted, meta)
@@ -495,13 +757,14 @@ def run_sweep(step: float, max_workers: int, target: int) -> None:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Karnataka Solar PV — two-phase candidate generation"
+        description="Karnataka Solar PV — full candidate selection"
     )
     parser.add_argument("--step",    type=float, default=0.1)
-    parser.add_argument("--workers", type=int,   default=8)
+    parser.add_argument("--workers", type=int,   default=4)
     parser.add_argument("--target",  type=int,   default=DEFAULT_TARGET)
     args = parser.parse_args()
     if not (TARGET_MIN <= args.target <= TARGET_MAX):
         print(f"ERROR: --target must be {TARGET_MIN}-{TARGET_MAX}")
         sys.exit(1)
     run_sweep(step=args.step, max_workers=args.workers, target=args.target)
+

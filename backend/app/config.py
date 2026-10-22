@@ -10,10 +10,15 @@ class Settings(BaseSettings):
         env_file=[".env", "../.env"],
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_db: str = "solar_pv_karnataka"
+    carto_api_key: str = ""
+    groq_api_key: str = ""
+    gemini_api_key: str = ""
+    openai_api_key: str = ""
 
 
 settings = Settings()

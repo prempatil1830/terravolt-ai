@@ -1,7 +1,7 @@
 """
 geoprocessing/fetch_nasa_power.py
 ----------------------------------
-Fetches 30-year climatological averages from the NASA POWER API for a
+Fetches 20-year climatological averages from the NASA POWER API for a
 single lat/lon point.
 
 Criteria reference: criteria.md § Criterion 1 (GHI) and § Criterion 7
@@ -9,7 +9,7 @@ Criteria reference: criteria.md § Criterion 1 (GHI) and § Criterion 7
 
 API endpoint (no auth required):
   https://power.larc.nasa.gov/api/temporal/climatology/point
-  Temporal coverage: 1994–2023 (climatology default)
+  Temporal coverage: 2001–2020 (20-year climatological average, per API header)
   Spatial resolution of source data: ~0.5° × 0.5° (~55 km grid)
 
 Returned parameters
@@ -154,13 +154,47 @@ def fetch_climatology(lat: float, lon: float) -> NASAPowerResult:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+# Thread-safe counter for live NASA POWER API calls
+_live_nasa_calls = 0
+_live_nasa_calls_lock = threading.Lock()
+
+def reset_live_nasa_calls() -> None:
+    global _live_nasa_calls
+    with _live_nasa_calls_lock:
+        _live_nasa_calls = 0
+
+def get_live_nasa_calls() -> int:
+    with _live_nasa_calls_lock:
+        return _live_nasa_calls
+
+
 def _get_with_retry(url: str, params: dict) -> dict:
-    """GET with thread-safe rate-limiting and simple exponential-backoff retry on 5xx responses."""
+    """GET with thread-safe rate-limiting, raw-output caching, and simple exponential-backoff retry on 5xx responses."""
+    import urllib.parse
+    try:
+        from raw_cache import get_cached, save_cached, is_replay_mode
+    except ImportError:
+        from geoprocessing.raw_cache import get_cached, save_cached, is_replay_mode
+
+    req_key = f"NASA_POWER: url={url}?{urllib.parse.urlencode(sorted(params.items()))}"
+    cached = get_cached(req_key)
+    if is_replay_mode():
+        if cached is not None:
+            return cached
+        raise RuntimeError(f"REPLAY mode active: missing cache for {req_key}")
+
+    if cached is not None:
+        return cached
+
     last_exc: Exception | None = None
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
             # Enforce global rate limiter across all threads (< 50 req/min)
             _rate_limiter.acquire()
+
+            global _live_nasa_calls
+            with _live_nasa_calls_lock:
+                _live_nasa_calls += 1
 
             resp = requests.get(url, params=params, timeout=_REQUEST_TIMEOUT)
 
@@ -171,7 +205,9 @@ def _get_with_retry(url: str, params: dict) -> dict:
                 )
 
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            save_cached(req_key, data, {"service": "NASA_POWER", "url": url, "params": params})
+            return data
 
         except NASAPowerRateLimitExceeded:
             # Explicitly propagate 429 — must never silently substitute fake data

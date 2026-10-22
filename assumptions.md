@@ -32,36 +32,21 @@ downstream publication. GADM chosen for openness in this phase; can be swapped.
 
 ---
 
-## 2. Reference Plant Size Assumption
+## 2. Reference Plant Size & Footprint Assumption
 
 **Reference plant:** 50 MWp (megawatt-peak) utility-scale solar PV plant  
-**Land requirement:** ~200–250 acres (≈ 80–100 hectares) per 50 MWp  
+**Design assumption (unverified rule of thumb):** **50 MWp × 4.5 acres/MWp = 225 acres** (≈ 91.05 hectares / 0.9105 km²).  
+**Circular footprint disk:**
+$$\text{Radius } r = \sqrt{\frac{225 \text{ acres} \times 4046.8564\text{ m}^2/\text{acre}}{\pi}} \approx 538.36\text{ m} \approx \mathbf{0.54\text{ km}} \quad (\texttt{FOOTPRINT\_RADIUS\_KM} = 0.54)$$
+$$\text{Disk Area} = \pi \times (0.54\text{ km})^2 = 0.91609\text{ km}^2 \approx \mathbf{226.37\text{ acres}} \text{ (91.61 hectares)}$$
 
 ### Reasoning & Source
-The Ministry of New and Renewable Energy (MNRE), Government of India, guidelines
-(Revision 2023) use a benchmark of **4–5 acres per MWp** for ground-mounted
-utility-scale crystalline-silicon plants in India, accounting for:
-- Panel footprint and inter-row spacing (to avoid mutual shading at ≈GHI-weighted
-  solar angles for Karnataka latitude ~14°N)
-- Internal access roads, inverter stations, and a 33/132 kV substation bay
-- Setback from the boundary fence (typically 5 m)
+The 4.5 acres/MWp factor is adopted as an unverified engineering rule of thumb based on typical Indian utility-scale benchmark ranges (4–5 acres/MWp for ground-mounted crystalline-silicon plants):
+- Panel footprint and tilt-row pitch (to avoid inter-row shading at Karnataka latitude ~14°N)
+- Internal access corridors, PCS/inverter stations, pooling switchyard, and perimeter security setbacks
+- 50 MWp is chosen as the standard utility-scale block tender size (KREDL / SECI).
 
-At 4 acres/MWp → 50 MWp requires **200 acres** (minimum, flat terrain).  
-At 5 acres/MWp → 50 MWp requires **250 acres** (moderate terrain with inter-row
-spacing adjustment).
-
-50 MWp is chosen as the minimum viable utility-scale threshold for Karnataka
-because:
-1. KREDL (Karnataka Renewable Energy Development Ltd) tenders are routinely issued
-   at 50–250 MWp blocks.
-2. Below 50 MWp, grid injection at 33 kV is feasible but evacuation costs
-   disproportionately erode project IRR.
-3. 50 MWp / 200–250 acres sets a minimum contiguous parcel size that drives the
-   spatial filter (candidate polygons must have ≥ 200 acres of unbroken suitability).
-
-**This assumption directly sets the minimum patch-size filter in the geoprocessing
-module.** Revisit if the decision-maker wishes to evaluate smaller distributed
-installations or agri-voltaic configurations.
+**This 0.54 km footprint radius (226.37 acres) directly sets the spatial screening disk across all candidate coordinates.** Revisit if the decision-maker evaluates alternate plant capacities or higher-density tracker systems.
 
 ---
 
@@ -138,6 +123,40 @@ This separation ensures that:
    without coupling to HTTP lifecycle.
 3. The database layer can be replaced (e.g., PostGIS) without rewriting
    computation logic.
+
+---
+
+## 6. Water Body Constraint & 1-Hectare Threshold Assumption
+
+**Water Layer Sources:**
+- ESA WorldCover 10m (2021 v200) Class 80 (Permanent Water Bodies)
+- OpenStreetMap hydrographic data: `natural=water`, `waterway=river`, `waterway=canal`, and multipolygon water bodies.
+
+**1-Hectare ($10,000\text{ m}^2$) Size Threshold (Project Engineering Assumption):**
+A minimum size threshold of **1 hectare** is applied to OSM water body polygons for regional feasibility screening:
+1. **Rationale:** At utility-scale PV resolution (50 MWp requiring ~225 acres / 226.4-acre disk), sub-hectare surface depressions, small seasonal cattle dugouts, and minor village farm ponds do not represent permanent regional hydrologic systems or regional flooding hazards that preclude utility development. Such micro-features are routinely resolved during civil site grading or detailed UAV topographical surveys.
+2. **Exclusion Scope:** Permanent water bodies $\ge 1\text{ ha}$ (lakes, reservoirs, major irrigation tanks) along with all mapped river and canal corridors are strictly preserved in the hard-exclusion water layer.
+3. **Footprint Disk Buffer:** A **500 m conservative project setback assumption** (not a claimed legal requirement) is applied from the **footprint disk edge** (nominal 0.54 km / 540 m radius disk + 500 m setback = 1,040 m from site centroid) to permanent water bodies (WorldCover Class 80, OSM rivers, reservoirs, and tanks/ponds $\ge 1\text{ ha}$). For canals and streams, exclusion applies only if they cross the footprint disk itself, otherwise their distance is recorded as context.
+
+---
+
+## 7. Slope Calibration & 3x3 Mean-Smoothed DEM Assumption
+
+**Slope Dataset:** Copernicus GLO-30 Digital Elevation Model (30 m resolution).  
+**Feasibility Criterion:** At least 80% of the footprint disk pixels must have slope $\le 5.0\%$ (utility-scale ground mount PV limit).
+
+### DSM Artefacts & Smoothing Justification
+1. **Copernicus DEM is a Digital Surface Model (DSM):** The Copernicus GLO-30 dataset captures surface elevations including physical structures rather than bare-earth ground elevation (DTM). Over existing solar installations, steep elevation jumps between panel tops, mounting structures, inverter shelters, perimeter security fences, and access trenches introduce high-frequency surface noise into finite-difference slope algorithms.
+2. **Calibration against Operating Solar Parks:** Evaluating raw 30 m DEM slopes across the Pavagada Solar Park polygon and 20 other large operating plants ($\ge 1\text{ km}^2$) in the region demonstrated that raw slope falsely penalizes operating plants due to panel-row surface roughness (e.g., Varavoo Kaval achieves 85.4% raw, Ananthapuramu achieves 70.9% raw).
+3. **Screening Check (Not Ranking Validation):** This check serves strictly as an empirical screening sanity-check against operating installations to ensure our physical feasibility envelope does not reject proven operational terrain; it does not validate the relative AHP ranking weights.
+4. **Adopted 3x3 Mean Smoothing:** A standard $3 \times 3$ mean smoothing filter ($1/9 \times [1]_{3\times 3}$) applied to the DEM prior to gradient computation effectively filters out array-level surface roughness while preserving the authentic regional topographic gradient. Under 3x3 smoothed slope:
+   - 100% of all Karnataka operating solar parks pass at $\ge 90\%$ usable slope (Pavagada: 100.0%, Varavoo Kaval: 90.9%, Guttigoli: 100.0%, Gollapalli: 100.0%, Gadag: 100.0%, Cleanmax: 100.0%).
+   - Across all 21 large regional solar polygons, 17 pass at $\ge 80\%$ (vs. 16 raw).
+5. **Standard Retention:** The conservative 80% usable footprint threshold ($\ge 80\%$ pixels with slope $\le 5\%$) is retained as the project's standard feasibility requirement.
+
+### Solar Resource & Climate Data Resolution
+1. **Global Horizontal Irradiance (GHI):** Modeled on a 1 x 1 degree grid (about 110 km) via NASA POWER 20-year climatology (2001–2020, `ALLSKY_SFC_SW_DWN`). At this macro resolution, localized terrain shading and microclimatic variations cannot be distinguished, leading to coarse, near-uniform values across adjacent candidate sites in the central solar belt.
+2. **Ambient Temperature (T2m):** Sourced at 0.5 x 0.625 degree resolution from the NASA POWER climatology (`T2M`), used to evaluate temperature derating factors for crystalline PV modules.
 
 ---
 

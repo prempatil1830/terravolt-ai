@@ -19,6 +19,13 @@ geoprocessing/data/worldcover_tiles/
 geoprocessing/data/*.tif
 *.tif
 geoprocessing/data/wdpa/*.zip
+geoprocessing/data/wdpa/part*/
+geoprocessing/data/wdpa/*.shp
+geoprocessing/data/wdpa/*.dbf
+geoprocessing/data/wdpa/*.shx
+geoprocessing/data/wdpa/*.cpg
+geoprocessing/data/wdpa/*.prj
+!geoprocessing/data/wdpa/wdpa_karnataka_filtered.geojson
 
 # Keep lightweight pipeline results
 !geoprocessing/data/candidates.json
@@ -35,3 +42,6 @@ build/
 # Logs and temporary scratch files
 *.log
 temp.json
+
+geoprocessing/data/raw_cache/
+scratch/

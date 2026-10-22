@@ -19,7 +19,7 @@ Pipeline Logic:
    reviewer has the number available, but the top-level status is "needs_review"
    and needs_review_reasons lists which constraint(s) triggered the flag.
 
-   Optional Footprint Sampling (footprint_radius_km, default=0.8 km ~200 acres):
+   Optional Footprint Sampling (footprint_radius_km, default=0.54 km ~226.4 acres for 50 MWp):
    - Slope: Samples centroid + 8 radial points (N, NE, E, SE, S, SW, W, NW).
      Reports mean and max slope. Trips if max slope > 5.0% (conservative constraint).
    - Land-use: Samples same 9 points. Reports excluded fraction. Trips if > 2 of 9
@@ -37,16 +37,23 @@ Pipeline Logic:
 """
 
 from typing import Any, Dict, List, Optional, Tuple
-import math
+import os
 import sys
+import math
+
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
 
 from ahp_engine import compute_ahp_weights, WEIGHTED_CRITERIA
 from fetch_slope import get_slope
 from fetch_landuse import get_suitability_full
-from fetch_protected_buffer import get_buffer_status
+from fetch_protected_buffer import get_buffer_status, check_known_gaps_review
 from fetch_nasa_power import fetch_climatology, NASAPowerRateLimitExceeded
 from fetch_substation_distance import get_substation_distance_km, get_grid_connection_info, SubstationDataUnavailable
 from fetch_landcost_proxy import get_landcost_proxy
+from fetch_boundary import check_boundary_constraint
+from provenance import wrap_score_candidate
 
 
 # Bounds updated from stale [4.0, 6.5] to [5.0, 6.0] to reflect the corrected Criterion 1
@@ -108,11 +115,11 @@ def compute_footprint_sample_points(lat: float, lon: float, radius_km: float) ->
     return samples
 
 
-def score_candidate(
+def _score_candidate_impl(
     lat: float,
     lon: float,
     ahp_weights: Optional[Dict[str, float]] = None,
-    footprint_radius_km: Optional[float] = 0.8,
+    footprint_radius_km: Optional[float] = None,
     verbose: bool = False,
 ) -> Dict[str, Any]:
     """
@@ -127,9 +134,9 @@ def score_candidate(
     ahp_weights : dict, optional
         Weights for the 4 evaluable criteria. If None, default AHP weights are computed.
     footprint_radius_km : float, optional
-        Radius of circular site footprint (default: 0.8 km ~200 acres).
-        If provided and > 0, evaluates slope and land-use across 9 footprint sample points
-        (centroid + 8 perimeter samples). If None or <= 0, evaluates centroid only.
+        Radius of circular site footprint (default: None for centroid-only).
+        If provided and > 0 (e.g. 0.54 km ~226.4 acres for 50 MWp), evaluates zonal
+        smoothed slope, land-use, and buffer across the footprint disk.
     verbose : bool
         If True, prints diagnostic progress.
 
@@ -163,39 +170,51 @@ def score_candidate(
     }
 
     use_footprint = (footprint_radius_km is not None and footprint_radius_km > 0.0)
-    sample_points = compute_footprint_sample_points(lat, lon, footprint_radius_km) if use_footprint else [(lat, lon, "centroid")]
+    effective_radius_km = footprint_radius_km if use_footprint else 0.54
+    sample_points = compute_footprint_sample_points(lat, lon, effective_radius_km) if use_footprint else [(lat, lon, "centroid")]
 
     # -----------------------------------------------------------------------
     # Step 1: Evaluate Hard Constraints
     # -----------------------------------------------------------------------
 
-    # Constraint A: Slope <= 5.0%
+    # Constraint 0: Karnataka State Boundary (First filter)
+    try:
+        passed_b, disk_frac, b_reason = check_boundary_constraint(
+            lat, lon, radius_km=effective_radius_km, min_disk_fraction=0.90
+        )
+        result["constraints"]["boundary"] = {
+            "passed": passed_b,
+            "disk_fraction": disk_frac,
+            "threshold": ">= 90% disk inside boundary",
+            "tripped": not passed_b,
+        }
+        if not passed_b:
+            result["tripped_constraints"].append(b_reason)
+    except Exception as e:
+        result["constraints"]["boundary"] = {"error": str(e), "tripped": False}
+
+    # Constraint A: Slope <= 5.0% (Smoothed slope under final rules)
     try:
         if use_footprint:
-            slope_samples = []
-            for pt_lat, pt_lon, label in sample_points:
-                s_val = get_slope(pt_lat, pt_lon)
-                slope_samples.append((label, s_val))
-            
-            slope_vals = [s[1] for s in slope_samples]
-            centroid_slope = slope_vals[0]
-            mean_slope = sum(slope_vals) / len(slope_vals)
-            max_slope = max(slope_vals)
-            slope_tripped = (max_slope > 5.0)
+            from zonal_footprint import evaluate_footprint_zonal
+            fp_res = evaluate_footprint_zonal(lat, lon, radius_km=effective_radius_km, min_usable_fraction=0.80)
+            result["footprint_zonal"] = fp_res
+            slope_tripped = not fp_res["slope_passed"]
+            centroid_slope = get_slope(lat, lon)
 
             result["constraints"]["slope"] = {
-                "mode": "footprint",
-                "samples_count": len(slope_vals),
+                "mode": "footprint_zonal",
                 "centroid_pct": round(centroid_slope, 2),
-                "mean_pct": round(mean_slope, 2),
-                "max_pct": round(max_slope, 2),
+                "mean_pct": fp_res["mean_slope_pct"],
+                "max_pct": fp_res["max_slope_pct"],
+                "f_slope_usable": fp_res["f_slope_usable"],
                 "tripped": slope_tripped,
-                "threshold": "max <= 5.0%",
+                "threshold": ">= 80% disk slope <= 5.0%",
             }
             if slope_tripped:
                 reason = (
-                    f"Max footprint slope ({max_slope:.2f}%, mean {mean_slope:.2f}%) "
-                    f"exceeds 5.0% threshold (centroid was {centroid_slope:.2f}%)"
+                    f"Smoothed slope usable fraction ({fp_res['f_slope_usable']*100:.1f}%, mean {fp_res['mean_slope_pct']:.2f}%) "
+                    f"is below 80% requirement"
                 )
                 result["tripped_constraints"].append(reason)
         else:
@@ -216,31 +235,27 @@ def score_candidate(
     # Constraint B: Land-use Suitability
     try:
         if use_footprint:
-            lu_samples = []
-            for pt_lat, pt_lon, label in sample_points:
-                lu_res = get_suitability_full(pt_lat, pt_lon)
-                lu_samples.append((label, lu_res))
-            
-            centroid_lu = lu_samples[0][1]
-            excluded_samples = [s for s in lu_samples if s[1].suitability == "excluded"]
-            excluded_count = len(excluded_samples)
-            excluded_fraction = excluded_count / float(len(lu_samples))
-            lu_tripped = (excluded_count > 2)
+            fp_res = result.get("footprint_zonal")
+            if fp_res is None:
+                from zonal_footprint import evaluate_footprint_zonal
+                fp_res = evaluate_footprint_zonal(lat, lon, radius_km=effective_radius_km, min_usable_fraction=0.80)
+                result["footprint_zonal"] = fp_res
+            lu_tripped = not fp_res["lu_passed"]
+            lu_centroid = get_suitability_full(lat, lon)
 
             result["constraints"]["landuse"] = {
-                "mode": "footprint",
-                "samples_count": len(lu_samples),
-                "centroid_class": centroid_lu.class_name,
-                "centroid_suitability": centroid_lu.suitability,
-                "excluded_count": excluded_count,
-                "excluded_fraction": round(excluded_fraction, 4),
+                "mode": "footprint_zonal",
+                "centroid_class": lu_centroid.class_name,
+                "centroid_suitability": lu_centroid.suitability,
+                "f_lu_usable": fp_res["f_lu_usable"],
+                "f_lu_excluded": fp_res["f_lu_excluded"],
                 "tripped": lu_tripped,
-                "threshold": "<= 2 of 9 samples excluded",
+                "threshold": ">= 80% disk eligible land-use",
             }
             if lu_tripped:
                 reason = (
-                    f"Land-use excluded: {excluded_count}/9 footprint samples are excluded class "
-                    f"({excluded_fraction * 100:.1f}%), exceeding 2/9 allowable threshold"
+                    f"Land-use usable fraction ({fp_res['f_lu_usable']*100:.1f}%) "
+                    f"is below 80% requirement"
                 )
                 result["tripped_constraints"].append(reason)
         else:
@@ -259,9 +274,9 @@ def score_candidate(
     except Exception as e:
         result["constraints"]["landuse"] = {"error": str(e), "tripped": False}
 
-    # Constraint C: Protected Area & Water Buffer (evaluated at site centroid)
+    # Constraint C: Protected Area & Water Buffer
     try:
-        buf_status = get_buffer_status(lat, lon)
+        buf_status = get_buffer_status(lat, lon, footprint_radius_km=effective_radius_km)
         buf_tripped = (buf_status == "excluded")
         result["constraints"]["protected_buffer"] = {
             "status": buf_status,
@@ -281,6 +296,15 @@ def score_candidate(
     except Exception as e:
         result["constraints"]["protected_buffer"] = {"error": str(e), "tripped": False}
 
+    # Review Rule: Known unmapped protected area gaps within 25 km
+    try:
+        gap_warnings = check_known_gaps_review(lat, lon, review_dist_km=25.0)
+        if gap_warnings:
+            result["needs_review"] = True
+            result["needs_review_reasons"].extend(gap_warnings)
+    except Exception as e:
+        pass
+
     # If any hard constraint tripped, return excluded immediately (no score computation)
     if result["tripped_constraints"]:
         result["status"] = "excluded"
@@ -298,7 +322,7 @@ def score_candidate(
     # GHI (NASA POWER ~55 km native grid resolution), Distance to Substation,
     # Land-Cost Proxy, and Temperature Derating (~55 km grid) remain evaluated
     # at the centroid only. These datasets have coarse spatial resolution relative
-    # to an ~0.8 km footprint (~200 acres), so multi-point sampling across the
+    # to an ~0.54 km footprint (~226.4 acres), so multi-point sampling across the
     # footprint adds negligible variance while imposing substantial network latency.
 
     # Criterion 1 & 7: NASA POWER Climatology (GHI and Temperature)
@@ -324,6 +348,8 @@ def score_candidate(
         sub_dist = grid_info.substation_dist_km
         line_dist = grid_info.transmission_line_dist_km
 
+        sub_v_tag = getattr(grid_info, "substation_voltage_tag", None)
+
         if sub_dist is None:
             # Query succeeded, but no qualifying >=33kV substation found within 50 km
             result["needs_review"] = True
@@ -335,6 +361,16 @@ def score_candidate(
             result["needs_review"] = True
             result["needs_review_reasons"].append(grid_info.confidence_reason)
 
+        # Voltage-unknown primary: substation qualified via substation=transmission
+        # (KPTCL-tagged) but carries no explicit voltage= tag in OSM.
+        # Score and distance are kept as-is; status is flagged for field verification.
+        if sub_dist is not None and (sub_v_tag is None or str(sub_v_tag).strip().lower() in ["none", "nan", "", "no voltage tag"]):
+            result["needs_review"] = True
+            result["needs_review_reasons"].append(
+                "Primary substation voltage not tagged in OSM; >=33 kV unconfirmed"
+            )
+
+        gen_sub_dist = getattr(grid_info, "nearest_generation_substation_dist_km", None)
     except SubstationDataUnavailable as e:
         # Overpass failed across all endpoints — must NOT swallow silently
         result["needs_review"] = True
@@ -354,14 +390,53 @@ def score_candidate(
         print(f"Warning: Land-cost proxy fetch failed for ({lat}, {lon}): {e}")
         lc_score = None
 
+    sub_name_str = grid_info.substation_name if grid_info.substation_name else "unnamed"
+    sub_op_str = getattr(grid_info, "substation_operator", None) if getattr(grid_info, "substation_operator", None) else "unnamed"
+    sub_v_tag = getattr(grid_info, "substation_voltage_tag", None)  # None means no voltage= tag in OSM
+
     # Store raw criteria values
     result["raw_criteria"] = {
         "ghi_kwh_m2_day": round(ghi, 4),
         "substation_dist_km": round(sub_dist, 2) if sub_dist is not None else None,
+        "substation_osm_id": grid_info.substation_osm_id,
+        "substation_name": sub_name_str,
+        "substation_operator": sub_op_str,
+        "substation_voltage_tag": sub_v_tag,
+        "substation_voltage_v": grid_info.substation_voltage_v,
         "transmission_line_dist_km": round(line_dist, 2) if line_dist is not None else None,
+        "transmission_line_osm_id": grid_info.transmission_line_osm_id,
+        "nearest_generation_substation_dist_km": round(gen_sub_dist, 2) if gen_sub_dist is not None else None,
+        "nearest generation substation (context only)": round(gen_sub_dist, 2) if gen_sub_dist is not None else None,
+        "generation_substation_osm_id": getattr(grid_info, "generation_substation_osm_id", None),
+        "generation_substation_name": getattr(grid_info, "generation_substation_name", None),
         "landcost_proxy_score": round(lc_score, 4) if lc_score is not None else None,
         "t2m_celsius": round(t2m, 2),
         "computed_derating_factor": round(derating_factor, 4),
+    }
+
+    closer_untagged = None
+    if getattr(grid_info, "closer_untagged_osm_id", None):
+        closer_untagged = {
+            "osm_id": grid_info.closer_untagged_osm_id,
+            "lat": grid_info.closer_untagged_lat,
+            "lon": grid_info.closer_untagged_lon,
+            "distance_km": grid_info.closer_untagged_dist_km,
+            "tags": grid_info.closer_untagged_tags,
+        }
+        result["raw_criteria"]["closer_untagged_osm_id"] = grid_info.closer_untagged_osm_id
+        result["raw_criteria"]["closer_untagged_lat"] = grid_info.closer_untagged_lat
+        result["raw_criteria"]["closer_untagged_lon"] = grid_info.closer_untagged_lon
+        result["raw_criteria"]["closer_untagged_dist_km"] = grid_info.closer_untagged_dist_km
+        result["raw_criteria"]["closer_untagged_tags"] = grid_info.closer_untagged_tags
+
+    result["substation_details"] = {
+        "osm_id": grid_info.substation_osm_id,
+        "name": sub_name_str,
+        "operator": sub_op_str,
+        "voltage_tag": sub_v_tag,
+        "voltage_v": grid_info.substation_voltage_v,
+        "distance_km": round(sub_dist, 2) if sub_dist is not None else None,
+        "closer_untagged": closer_untagged,
     }
 
     # Normalize criteria to 0-1
@@ -401,6 +476,9 @@ def score_candidate(
     return result
 
 
+score_candidate = wrap_score_candidate(_score_candidate_impl)
+
+
 def print_evaluation(name: str, res: Dict[str, Any]) -> None:
     """Pretty-prints the candidate evaluation result."""
     mode_str = f"Footprint (r={res['footprint_radius_km']} km, 9 samples)" if res.get("footprint_radius_km") else "Centroid-Only"
@@ -418,8 +496,8 @@ def print_evaluation(name: str, res: Dict[str, Any]) -> None:
             print(f"  - {k:<17}: {v}")
 
     elif res["status"] == "needs_review":
-        print("⚠  NEEDS MANUAL REVIEW — protected-area / water-buffer status could")
-        print("⚠  not be confirmed (Overpass API unreachable). Site is NOT cleared.")
+        print("  NEEDS MANUAL REVIEW — protected-area / water-buffer status could")
+        print("  not be confirmed (Overpass API unreachable). Site is NOT cleared.")
         for reason in res.get("needs_review_reasons", []):
             print(f"   Reason: {reason}")
         if res["score"] is not None:
@@ -467,7 +545,7 @@ def _status_score_str(res: Dict[str, Any]) -> str:
     if res["score"] is not None:
         base = f"{res['score']:.4f} ({res['score_100']:.2f}/100)"
         if res["status"] == "needs_review":
-            return base + " ⚠NR"
+            return base + " [NR]"
         return base
     return res["status"].upper()
 
@@ -496,7 +574,7 @@ def run_benchmark() -> None:
     ]
 
     print("\n" + "=" * 78)
-    print("SIDE-BY-SIDE BENCHMARK RESULTS (Centroid-Only vs Footprint Radius = 0.8 km)")
+    print("SIDE-BY-SIDE BENCHMARK RESULTS (Centroid-Only vs Footprint Radius = 0.54 km)")
     print("=" * 78)
 
     all_statuses: List[str] = []
@@ -507,8 +585,8 @@ def run_benchmark() -> None:
         # Centroid-only evaluation
         res_centroid = score_candidate(lat, lon, ahp_weights=ahp_res.weights, footprint_radius_km=None)
 
-        # Footprint evaluation (0.8 km radius ~ 200 acres)
-        res_footprint = score_candidate(lat, lon, ahp_weights=ahp_res.weights, footprint_radius_km=0.8)
+        # Footprint evaluation (0.54 km radius ~ 226.4 acres)
+        res_footprint = score_candidate(lat, lon, ahp_weights=ahp_res.weights, footprint_radius_km=0.54)
 
         all_statuses.append(res_centroid["status"])
         all_statuses.append(res_footprint["status"])
@@ -540,8 +618,8 @@ def run_benchmark() -> None:
         # Buffer comparison
         c_buf = res_centroid['constraints']['protected_buffer'].get('status', '?')
         f_buf = res_footprint['constraints']['protected_buffer'].get('status', '?')
-        c_buf_disp = f"{c_buf} ⚠" if c_buf == "needs_review" else c_buf
-        f_buf_disp = f"{f_buf} ⚠" if f_buf == "needs_review" else f_buf
+        c_buf_disp = f"{c_buf} (Review)" if c_buf == "needs_review" else c_buf
+        f_buf_disp = f"{f_buf} (Review)" if f_buf == "needs_review" else f_buf
         print(f"{'PA/Water Buffer':<22} | {c_buf_disp:<25} | {f_buf_disp:<28}")
 
         # Status & Score

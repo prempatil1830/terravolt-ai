@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-12T16:41:37.821619+00:00",
+  "generated_at": "2026-10-18T10:37:39.898519+00:00",
   "sweep_metadata": {
     "step_deg": 0.1,
     "lat_min": 11.5,
@@ -7,207 +7,72 @@
     "lon_min": 74.0,
     "lon_max": 78.5,
     "total_points": 3266,
-    "p1_eligible": 1888,
-    "p1_excluded": 1378,
+    "p1_eligible": 377,
+    "p1_excluded": 2889,
     "target": 12,
     "region_rows": 5,
     "region_cols": 4,
-    "final_eligible": 10,
-    "final_excluded": 1,
-    "final_needs_review": 1,
-    "needs_review_rate_pct": 8.33,
-    "phase1_wall_time_s": 2316.6,
-    "phase2_wall_time_s": 1013.6,
-    "total_wall_time_s": 3330.2,
-    "selection_rule_version": "v1",
-    "selection_rule_frozen_date": "2026-09-12"
+    "final_eligible": 9,
+    "final_excluded": 0,
+    "final_needs_review": 3,
+    "needs_review_rate_pct": 25.0,
+    "phase1_wall_time_s": 70.6,
+    "phase2_wall_time_s": 27.4,
+    "total_wall_time_s": 98.1,
+    "selection_rule_version": "v2",
+    "selection_rule_frozen_date": "2026-10-15",
+    "sweep_start_time": "2026-10-18T10:36:01.820897+00:00",
+    "sweep_end_time": "2026-10-18T10:37:39.898389+00:00",
+    "live_nasa_power_calls": 0,
+    "cache_entries_written": 0
   },
-  "selection_rule": "FROZEN v1 (2026-09-12): 5x4 region-grid diversity; top-Phase1-score-per-region; top 12 by Phase-1 score. Final ranking uses full Phase-2 AHP score. See generate_candidates.py docstring.",
+  "selection_rule": "FROZEN v2 (2026-10-15): 5x4 region-grid diversity; region winners ranked by preliminary AHP score including substation distance (GHI 0.40, Substation 0.40, Temperature 0.10, renormalized to 1.0). Final evaluation applies full 4-criteria AHP.",
   "candidates": [
     {
       "rank": 1,
-      "latitude": 14.3,
-      "longitude": 77.4,
+      "latitude": 14.2,
+      "longitude": 76.5,
+      "district": "Chitradurga",
       "status": "eligible",
-      "score": 0.727,
-      "score_100": 72.7,
-      "p1_score": 0.5919,
-      "needs_review": false,
-      "needs_review_reasons": [],
-      "raw_criteria": {
-        "ghi_kwh_m2_day": 5.6566,
-        "substation_dist_km": 0.9,
-        "transmission_line_dist_km": 0.21,
-        "landcost_proxy_score": 0.3826,
-        "t2m_celsius": 26.67,
-        "computed_derating_factor": 0.8813
-      },
-      "normalized_criteria": {
-        "ghi": 0.6566,
-        "substation": 0.9819,
-        "landcost": 0.3826,
-        "temp_derating": 0.333
-      },
-      "weights": {
-        "ghi": 0.4000000000000001,
-        "substation": 0.4,
-        "landcost": 0.1,
-        "temp_derating": 0.1
-      },
-      "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 0.97,
-          "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
-          "tripped": false
-        },
-        "protected_buffer": {
-          "status": "eligible",
-          "tripped": false
-        }
-      },
-      "region": [
-        2,
-        3
-      ]
-    },
-    {
-      "rank": 2,
-      "latitude": 14.0,
-      "longitude": 77.0,
-      "status": "eligible",
-      "score": 0.6746,
-      "score_100": 67.46,
-      "p1_score": 0.6223,
-      "needs_review": false,
-      "needs_review_reasons": [],
-      "raw_criteria": {
-        "ghi_kwh_m2_day": 5.6566,
-        "substation_dist_km": 12.1,
-        "transmission_line_dist_km": 6.06,
-        "landcost_proxy_score": 0.603,
-        "t2m_celsius": 25.15,
-        "computed_derating_factor": 0.8874
-      },
-      "normalized_criteria": {
-        "ghi": 0.6566,
-        "substation": 0.758,
-        "landcost": 0.603,
-        "temp_derating": 0.485
-      },
-      "weights": {
-        "ghi": 0.4000000000000001,
-        "substation": 0.4,
-        "landcost": 0.1,
-        "temp_derating": 0.1
-      },
-      "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 2.61,
-          "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
-          "tripped": false
-        },
-        "protected_buffer": {
-          "status": "eligible",
-          "tripped": false
-        }
-      },
-      "region": [
-        1,
-        2
-      ]
-    },
-    {
-      "rank": 3,
-      "latitude": 14.3,
-      "longitude": 77.0,
-      "status": "eligible",
-      "score": 0.6471,
-      "score_100": 64.71,
-      "p1_score": 0.6087,
-      "needs_review": false,
-      "needs_review_reasons": [],
-      "raw_criteria": {
-        "ghi_kwh_m2_day": 5.6566,
-        "substation_dist_km": 13.46,
-        "transmission_line_dist_km": 0.53,
-        "landcost_proxy_score": 0.5049,
-        "t2m_celsius": 25.83,
-        "computed_derating_factor": 0.8847
-      },
-      "normalized_criteria": {
-        "ghi": 0.6566,
-        "substation": 0.7307,
-        "landcost": 0.5049,
-        "temp_derating": 0.417
-      },
-      "weights": {
-        "ghi": 0.4000000000000001,
-        "substation": 0.4,
-        "landcost": 0.1,
-        "temp_derating": 0.1
-      },
-      "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 2.25,
-          "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 20,
-          "class_name": "Shrubland",
-          "suitability": "eligible",
-          "tripped": false
-        },
-        "protected_buffer": {
-          "status": "eligible",
-          "tripped": false
-        }
-      },
-      "region": [
-        2,
-        2
-      ]
-    },
-    {
-      "rank": 4,
-      "latitude": 14.1,
-      "longitude": 76.0,
-      "status": "eligible",
-      "score": 0.6456,
-      "score_100": 64.56,
+      "score": 0.7091,
+      "score_100": 70.91,
       "p1_score": 0.6022,
+      "p1_score_v2": 0.7632,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
       "needs_review": false,
       "needs_review_reasons": [],
       "raw_criteria": {
         "ghi_kwh_m2_day": 5.617,
-        "substation_dist_km": 8.88,
-        "transmission_line_dist_km": 3.49,
-        "landcost_proxy_score": 0.1556,
+        "substation_dist_km": 1.78,
+        "substation_osm_id": "way/1358507404",
+        "substation_name": "unnamed",
+        "substation_operator": "unnamed",
+        "substation_voltage_tag": "66000",
+        "substation_voltage_v": 66000.0,
+        "transmission_line_dist_km": 0.25,
+        "transmission_line_osm_id": "way/1360504595",
+        "nearest_generation_substation_dist_km": 7.68,
+        "nearest generation substation (context only)": 7.68,
+        "generation_substation_osm_id": "way/1192815107",
+        "generation_substation_name": "Chitradurga Traction",
+        "landcost_proxy_score": 0.2225,
         "t2m_celsius": 24.57,
         "computed_derating_factor": 0.8897
       },
+      "substation_details": {
+        "osm_id": "way/1358507404",
+        "name": "unnamed",
+        "operator": "unnamed",
+        "voltage_tag": "66000",
+        "voltage_v": 66000.0,
+        "distance_km": 1.78,
+        "closer_untagged": null
+      },
       "normalized_criteria": {
         "ghi": 0.617,
-        "substation": 0.8224,
-        "landcost": 0.1556,
+        "substation": 0.9643,
+        "landcost": 0.2225,
         "temp_derating": 0.543
       },
       "weights": {
@@ -217,18 +82,29 @@
         "temp_derating": 0.1
       },
       "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
         "slope": {
-          "mode": "centroid",
-          "value_pct": 2.94,
+          "mode": "footprint_zonal",
+          "centroid_pct": 0.76,
+          "mean_pct": 1.53,
+          "max_pct": 3.89,
+          "f_slope_usable": 1.0,
           "tripped": false,
-          "threshold": "<= 5.0%"
+          "threshold": ">= 80% disk slope <= 5.0%"
         },
         "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
-          "tripped": false
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.9575,
+          "f_lu_excluded": 0.0425,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
         },
         "protected_buffer": {
           "status": "eligible",
@@ -237,85 +113,64 @@
       },
       "region": [
         1,
-        1
+        2
+      ],
+      "exact_reasons": [
+        "GHI: 5.617 kWh/m\u00b2/day",
+        "Primary substation distance: 1.78 km",
+        "Transmission corridor distance: 0.25 km",
+        "Footprint mean slope: 1.53% (max: 3.89%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 24.57\u00b0C"
       ]
     },
     {
-      "rank": 5,
-      "latitude": 14.2,
-      "longitude": 75.0,
-      "status": "eligible",
-      "score": 0.6354,
-      "score_100": 63.54,
-      "p1_score": 0.5039,
-      "needs_review": false,
-      "needs_review_reasons": [],
+      "rank": 2,
+      "latitude": 13.2,
+      "longitude": 77.4,
+      "district": "Bengaluru North",
+      "status": "needs_review",
+      "score": 0.6989,
+      "score_100": 69.89,
+      "p1_score": 0.6118,
+      "p1_score_v2": 0.7507,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": true,
+      "needs_review_reasons": [
+        "Primary substation voltage not tagged in OSM; >=33 kV unconfirmed"
+      ],
       "raw_criteria": {
-        "ghi_kwh_m2_day": 5.4881,
-        "substation_dist_km": 3.24,
-        "transmission_line_dist_km": 2.52,
-        "landcost_proxy_score": 0.0937,
-        "t2m_celsius": 24.33,
-        "computed_derating_factor": 0.8907
-      },
-      "normalized_criteria": {
-        "ghi": 0.4881,
-        "substation": 0.9353,
-        "landcost": 0.0937,
-        "temp_derating": 0.567
-      },
-      "weights": {
-        "ghi": 0.4000000000000001,
-        "substation": 0.4,
-        "landcost": 0.1,
-        "temp_derating": 0.1
-      },
-      "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 0.27,
-          "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 30,
-          "class_name": "Grassland",
-          "suitability": "eligible",
-          "tripped": false
-        },
-        "protected_buffer": {
-          "status": "eligible",
-          "tripped": false
-        }
-      },
-      "region": [
-        1,
-        0
-      ]
-    },
-    {
-      "rank": 6,
-      "latitude": 12.8,
-      "longitude": 77.8,
-      "status": "eligible",
-      "score": 0.6275,
-      "score_100": 62.75,
-      "p1_score": 0.5099,
-      "needs_review": false,
-      "needs_review_reasons": [],
-      "raw_criteria": {
-        "ghi_kwh_m2_day": 5.4809,
-        "substation_dist_km": 4.42,
-        "transmission_line_dist_km": 1.3,
-        "landcost_proxy_score": 0.0788,
+        "ghi_kwh_m2_day": 5.6083,
+        "substation_dist_km": 3.78,
+        "substation_osm_id": "way/1134097124",
+        "substation_name": "unnamed",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "no voltage tag",
+        "substation_voltage_v": null,
+        "transmission_line_dist_km": 0.94,
+        "transmission_line_osm_id": "way/256835138",
+        "nearest_generation_substation_dist_km": 21.75,
+        "nearest generation substation (context only)": 21.75,
+        "generation_substation_osm_id": "way/669945295",
+        "generation_substation_name": "Yelahanka CCPP",
+        "landcost_proxy_score": 0.233,
         "t2m_celsius": 23.74,
         "computed_derating_factor": 0.893
       },
+      "substation_details": {
+        "osm_id": "way/1134097124",
+        "name": "unnamed",
+        "operator": "KPTCL",
+        "voltage_tag": "no voltage tag",
+        "voltage_v": null,
+        "distance_km": 3.78,
+        "closer_untagged": null
+      },
       "normalized_criteria": {
-        "ghi": 0.4809,
-        "substation": 0.9116,
-        "landcost": 0.0788,
+        "ghi": 0.6083,
+        "substation": 0.9243,
+        "landcost": 0.233,
         "temp_derating": 0.626
       },
       "weights": {
@@ -325,72 +180,29 @@
         "temp_derating": 0.1
       },
       "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
         "slope": {
-          "mode": "centroid",
-          "value_pct": 1.18,
+          "mode": "footprint_zonal",
+          "centroid_pct": 5.12,
+          "mean_pct": 2.64,
+          "max_pct": 9.71,
+          "f_slope_usable": 0.935,
           "tripped": false,
-          "threshold": "<= 5.0%"
+          "threshold": ">= 80% disk slope <= 5.0%"
         },
         "landuse": {
-          "mode": "centroid",
-          "class_code": 30,
-          "class_name": "Grassland",
-          "suitability": "eligible",
-          "tripped": false
-        },
-        "protected_buffer": {
-          "status": "eligible",
-          "tripped": false
-        }
-      },
-      "region": [
-        0,
-        3
-      ]
-    },
-    {
-      "rank": 7,
-      "latitude": 14.0,
-      "longitude": 77.4,
-      "status": "eligible",
-      "score": 0.6073,
-      "score_100": 60.73,
-      "p1_score": 0.6175,
-      "needs_review": false,
-      "needs_review_reasons": [],
-      "raw_criteria": {
-        "ghi_kwh_m2_day": 5.6566,
-        "substation_dist_km": 16.49,
-        "transmission_line_dist_km": 1.19,
-        "landcost_proxy_score": 0.3051,
-        "t2m_celsius": 25.39,
-        "computed_derating_factor": 0.8864
-      },
-      "normalized_criteria": {
-        "ghi": 0.6566,
-        "substation": 0.6701,
-        "landcost": 0.3051,
-        "temp_derating": 0.461
-      },
-      "weights": {
-        "ghi": 0.4000000000000001,
-        "substation": 0.4,
-        "landcost": 0.1,
-        "temp_derating": 0.1
-      },
-      "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 2.4,
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.9022,
+          "f_lu_excluded": 0.0978,
           "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
-          "tripped": false
+          "threshold": ">= 80% disk eligible land-use"
         },
         "protected_buffer": {
           "status": "eligible",
@@ -400,87 +212,62 @@
       "region": [
         1,
         3
-      ]
-    },
-    {
-      "rank": 8,
-      "latitude": 14.3,
-      "longitude": 75.0,
-      "status": "needs_review",
-      "score": 0.5712,
-      "score_100": 57.12,
-      "p1_score": 0.5027,
-      "needs_review": true,
-      "needs_review_reasons": [
-        "Water-body buffer proximity unconfirmed: all Overpass API endpoints failed \u2014 manual or offline verification required"
       ],
-      "raw_criteria": {
-        "ghi_kwh_m2_day": 5.4881,
-        "substation_dist_km": 13.13,
-        "transmission_line_dist_km": 5.09,
-        "landcost_proxy_score": 0.2491,
-        "t2m_celsius": 24.39,
-        "computed_derating_factor": 0.8904
-      },
-      "normalized_criteria": {
-        "ghi": 0.4881,
-        "substation": 0.7373,
-        "landcost": 0.2491,
-        "temp_derating": 0.561
-      },
-      "weights": {
-        "ghi": 0.4000000000000001,
-        "substation": 0.4,
-        "landcost": 0.1,
-        "temp_derating": 0.1
-      },
-      "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 3.3,
-          "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 30,
-          "class_name": "Grassland",
-          "suitability": "eligible",
-          "tripped": false
-        },
-        "protected_buffer": {
-          "status": "needs_review",
-          "tripped": false
-        }
-      },
-      "region": [
-        2,
-        0
+      "exact_reasons": [
+        "GHI: 5.608 kWh/m\u00b2/day",
+        "Primary substation distance: 3.78 km",
+        "Transmission corridor distance: 0.94 km",
+        "Footprint mean slope: 2.64% (max: 9.71%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 23.74\u00b0C"
       ]
     },
     {
-      "rank": 9,
-      "latitude": 16.8,
-      "longitude": 77.9,
+      "rank": 3,
+      "latitude": 14.4,
+      "longitude": 76.7,
+      "district": "Chitradurga",
       "status": "eligible",
-      "score": 0.5535,
-      "score_100": 55.35,
-      "p1_score": 0.519,
+      "score": 0.6888,
+      "score_100": 68.88,
+      "p1_score": 0.577,
+      "p1_score_v2": 0.7418,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
       "needs_review": false,
       "needs_review_reasons": [],
       "raw_criteria": {
-        "ghi_kwh_m2_day": 5.5447,
-        "substation_dist_km": 16.17,
-        "transmission_line_dist_km": 4.72,
-        "landcost_proxy_score": 0.2334,
-        "t2m_celsius": 25.84,
-        "computed_derating_factor": 0.8846
+        "ghi_kwh_m2_day": 5.617,
+        "substation_dist_km": 2.61,
+        "substation_osm_id": "way/516693299",
+        "substation_name": "unnamed",
+        "substation_operator": "unnamed",
+        "substation_voltage_tag": "220000",
+        "substation_voltage_v": 220000.0,
+        "transmission_line_dist_km": 0.16,
+        "transmission_line_osm_id": "way/256774611",
+        "nearest_generation_substation_dist_km": 11.5,
+        "nearest generation substation (context only)": 11.5,
+        "generation_substation_osm_id": "way/516693302",
+        "generation_substation_name": "Sagitaur",
+        "landcost_proxy_score": 0.2118,
+        "t2m_celsius": 25.83,
+        "computed_derating_factor": 0.8847
+      },
+      "substation_details": {
+        "osm_id": "way/516693299",
+        "name": "unnamed",
+        "operator": "unnamed",
+        "voltage_tag": "220000",
+        "voltage_v": 220000.0,
+        "distance_km": 2.61,
+        "closer_untagged": null
       },
       "normalized_criteria": {
-        "ghi": 0.5447,
-        "substation": 0.6766,
-        "landcost": 0.2334,
-        "temp_derating": 0.416
+        "ghi": 0.617,
+        "substation": 0.9478,
+        "landcost": 0.2118,
+        "temp_derating": 0.417
       },
       "weights": {
         "ghi": 0.4000000000000001,
@@ -489,18 +276,29 @@
         "temp_derating": 0.1
       },
       "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
         "slope": {
-          "mode": "centroid",
-          "value_pct": 3.24,
+          "mode": "footprint_zonal",
+          "centroid_pct": 3.22,
+          "mean_pct": 2.57,
+          "max_pct": 4.16,
+          "f_slope_usable": 1.0,
           "tripped": false,
-          "threshold": "<= 5.0%"
+          "threshold": ">= 80% disk slope <= 5.0%"
         },
         "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
-          "tripped": false
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 1.0,
+          "f_lu_excluded": 0.0,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
         },
         "protected_buffer": {
           "status": "eligible",
@@ -508,33 +306,85 @@
         }
       },
       "region": [
-        3,
-        3
+        2,
+        2
+      ],
+      "exact_reasons": [
+        "GHI: 5.617 kWh/m\u00b2/day",
+        "Primary substation distance: 2.61 km",
+        "Transmission corridor distance: 0.16 km",
+        "Footprint mean slope: 2.57% (max: 4.16%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 25.83\u00b0C"
       ]
     },
     {
-      "rank": 10,
-      "latitude": 14.3,
+      "rank": 4,
+      "latitude": 15.0,
       "longitude": 76.1,
-      "status": "eligible",
-      "score": 0.5454,
-      "score_100": 54.54,
-      "p1_score": 0.5904,
-      "needs_review": false,
-      "needs_review_reasons": [],
+      "district": "Vijayanagara",
+      "status": "needs_review",
+      "score": 0.6747,
+      "score_100": 67.47,
+      "p1_score": 0.5806,
+      "p1_score_v2": 0.7237,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": true,
+      "needs_review_reasons": [
+        "Untagged substation at 2.48 km is closer than nearest confirmed >=33kV (4.87 km)"
+      ],
       "raw_criteria": {
         "ghi_kwh_m2_day": 5.617,
-        "substation_dist_km": 22.53,
-        "transmission_line_dist_km": 0.67,
-        "landcost_proxy_score": 0.304,
-        "t2m_celsius": 25.16,
-        "computed_derating_factor": 0.8874
+        "substation_dist_km": 4.87,
+        "substation_osm_id": "way/251750523",
+        "substation_name": "Itagi",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "220000;66000",
+        "substation_voltage_v": 220000.0,
+        "transmission_line_dist_km": 0.26,
+        "transmission_line_osm_id": "way/251750556",
+        "nearest_generation_substation_dist_km": 2.17,
+        "nearest generation substation (context only)": 2.17,
+        "generation_substation_osm_id": "way/1361199425",
+        "generation_substation_name": null,
+        "landcost_proxy_score": 0.2333,
+        "t2m_celsius": 25.65,
+        "computed_derating_factor": 0.8854,
+        "closer_untagged_osm_id": "way/251750524",
+        "closer_untagged_lat": 15.02268,
+        "closer_untagged_lon": 76.09765,
+        "closer_untagged_dist_km": 2.475,
+        "closer_untagged_tags": {
+          "name": "Morageri",
+          "name:kn": "\u0cae\u0cca\u0cb0\u0c97\u0cc7\u0cb0\u0cbf",
+          "power": "substation"
+        }
+      },
+      "substation_details": {
+        "osm_id": "way/251750523",
+        "name": "Itagi",
+        "operator": "KPTCL",
+        "voltage_tag": "220000;66000",
+        "voltage_v": 220000.0,
+        "distance_km": 4.87,
+        "closer_untagged": {
+          "osm_id": "way/251750524",
+          "lat": 15.02268,
+          "lon": 76.09765,
+          "distance_km": 2.475,
+          "tags": {
+            "name": "Morageri",
+            "name:kn": "\u0cae\u0cca\u0cb0\u0c97\u0cc7\u0cb0\u0cbf",
+            "power": "substation"
+          }
+        }
       },
       "normalized_criteria": {
         "ghi": 0.617,
-        "substation": 0.5494,
-        "landcost": 0.304,
-        "temp_derating": 0.484
+        "substation": 0.9027,
+        "landcost": 0.2333,
+        "temp_derating": 0.435
       },
       "weights": {
         "ghi": 0.4000000000000001,
@@ -543,18 +393,29 @@
         "temp_derating": 0.1
       },
       "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
         "slope": {
-          "mode": "centroid",
-          "value_pct": 1.08,
+          "mode": "footprint_zonal",
+          "centroid_pct": 1.14,
+          "mean_pct": 1.39,
+          "max_pct": 2.39,
+          "f_slope_usable": 1.0,
           "tripped": false,
-          "threshold": "<= 5.0%"
+          "threshold": ">= 80% disk slope <= 5.0%"
         },
         "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
-          "tripped": false
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 1.0,
+          "f_lu_excluded": 0.0,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
         },
         "protected_buffer": {
           "status": "eligible",
@@ -564,31 +425,62 @@
       "region": [
         2,
         1
+      ],
+      "exact_reasons": [
+        "GHI: 5.617 kWh/m\u00b2/day",
+        "Primary substation distance: 4.87 km",
+        "Transmission corridor distance: 0.26 km",
+        "Footprint mean slope: 1.39% (max: 2.39%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 25.65\u00b0C"
       ]
     },
     {
-      "rank": 11,
-      "latitude": 11.5,
-      "longitude": 77.1,
+      "rank": 5,
+      "latitude": 16.0,
+      "longitude": 76.9,
+      "district": "Raichur",
       "status": "eligible",
-      "score": 0.2899,
-      "score_100": 28.99,
-      "p1_score": 0.5166,
+      "score": 0.6714,
+      "score_100": 67.14,
+      "p1_score": 0.4864,
+      "p1_score_v2": 0.7108,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
       "needs_review": false,
       "needs_review_reasons": [],
       "raw_criteria": {
-        "ghi_kwh_m2_day": 5.4833,
-        "substation_dist_km": null,
-        "transmission_line_dist_km": null,
-        "landcost_proxy_score": 0.3163,
-        "t2m_celsius": 23.5,
-        "computed_derating_factor": 0.894
+        "ghi_kwh_m2_day": 5.5375,
+        "substation_dist_km": 0.44,
+        "substation_osm_id": "way/250517631",
+        "substation_name": "Byagawata",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "110000",
+        "substation_voltage_v": 110000.0,
+        "transmission_line_dist_km": 0.55,
+        "transmission_line_osm_id": "way/250517628",
+        "nearest_generation_substation_dist_km": 2.92,
+        "nearest generation substation (context only)": 2.92,
+        "generation_substation_osm_id": "way/1301965587",
+        "generation_substation_name": "Acme Babadham",
+        "landcost_proxy_score": 0.3167,
+        "t2m_celsius": 27.18,
+        "computed_derating_factor": 0.8793
+      },
+      "substation_details": {
+        "osm_id": "way/250517631",
+        "name": "Byagawata",
+        "operator": "KPTCL",
+        "voltage_tag": "110000",
+        "voltage_v": 110000.0,
+        "distance_km": 0.44,
+        "closer_untagged": null
       },
       "normalized_criteria": {
-        "ghi": 0.4833,
-        "substation": 0.0,
-        "landcost": 0.3163,
-        "temp_derating": 0.65
+        "ghi": 0.5375,
+        "substation": 0.9912,
+        "landcost": 0.3167,
+        "temp_derating": 0.282
       },
       "weights": {
         "ghi": 0.4000000000000001,
@@ -597,18 +489,413 @@
         "temp_derating": 0.1
       },
       "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
         "slope": {
-          "mode": "centroid",
-          "value_pct": 3.35,
+          "mode": "footprint_zonal",
+          "centroid_pct": 1.67,
+          "mean_pct": 2.56,
+          "max_pct": 15.74,
+          "f_slope_usable": 0.8759,
           "tripped": false,
-          "threshold": "<= 5.0%"
+          "threshold": ">= 80% disk slope <= 5.0%"
         },
         "landuse": {
-          "mode": "centroid",
-          "class_code": 20,
-          "class_name": "Shrubland",
-          "suitability": "eligible",
+          "mode": "footprint_zonal",
+          "centroid_class": "Shrubland",
+          "centroid_suitability": "eligible",
+          "f_lu_usable": 0.9696,
+          "f_lu_excluded": 0.0304,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
+        "protected_buffer": {
+          "status": "eligible",
           "tripped": false
+        }
+      },
+      "region": [
+        3,
+        2
+      ],
+      "exact_reasons": [
+        "GHI: 5.537 kWh/m\u00b2/day",
+        "Primary substation distance: 0.44 km",
+        "Transmission corridor distance: 0.55 km",
+        "Footprint mean slope: 2.56% (max: 15.74%)",
+        "Land cover: Shrubland",
+        "Ambient temperature (T2m): 27.18\u00b0C"
+      ]
+    },
+    {
+      "rank": 6,
+      "latitude": 16.3,
+      "longitude": 76.2,
+      "district": "Vijayapura",
+      "status": "eligible",
+      "score": 0.6498,
+      "score_100": 64.98,
+      "p1_score": 0.483,
+      "p1_score_v2": 0.704,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.5202,
+        "substation_dist_km": 0.98,
+        "substation_osm_id": "way/1301680771",
+        "substation_name": "Hiremural",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "110000",
+        "substation_voltage_v": 110000.0,
+        "transmission_line_dist_km": 0.14,
+        "transmission_line_osm_id": "way/1312978198",
+        "nearest_generation_substation_dist_km": 6.36,
+        "nearest generation substation (context only)": 6.36,
+        "generation_substation_osm_id": "way/1301679554",
+        "generation_substation_name": null,
+        "landcost_proxy_score": 0.1611,
+        "t2m_celsius": 26.66,
+        "computed_derating_factor": 0.8814
+      },
+      "substation_details": {
+        "osm_id": "way/1301680771",
+        "name": "Hiremural",
+        "operator": "KPTCL",
+        "voltage_tag": "110000",
+        "voltage_v": 110000.0,
+        "distance_km": 0.98,
+        "closer_untagged": null
+      },
+      "normalized_criteria": {
+        "ghi": 0.5202,
+        "substation": 0.9804,
+        "landcost": 0.1611,
+        "temp_derating": 0.334
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 1.97,
+          "mean_pct": 1.46,
+          "max_pct": 2.38,
+          "f_slope_usable": 1.0,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.9951,
+          "f_lu_excluded": 0.0049,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        3,
+        1
+      ],
+      "exact_reasons": [
+        "GHI: 5.520 kWh/m\u00b2/day",
+        "Primary substation distance: 0.98 km",
+        "Transmission corridor distance: 0.14 km",
+        "Footprint mean slope: 1.46% (max: 2.38%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 26.66\u00b0C"
+      ]
+    },
+    {
+      "rank": 7,
+      "latitude": 16.4,
+      "longitude": 75.1,
+      "district": "Bagalkote",
+      "status": "eligible",
+      "score": 0.6246,
+      "score_100": 62.46,
+      "p1_score": 0.4485,
+      "p1_score_v2": 0.6899,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4571,
+        "substation_dist_km": 0.42,
+        "substation_osm_id": "way/250821982",
+        "substation_name": "Mahalingapura",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "220000;110000",
+        "substation_voltage_v": 220000.0,
+        "transmission_line_dist_km": 0.01,
+        "transmission_line_osm_id": "way/250821997",
+        "nearest_generation_substation_dist_km": 5.58,
+        "nearest generation substation (context only)": 5.58,
+        "generation_substation_osm_id": "way/250771491",
+        "generation_substation_name": "Godavari Sugars",
+        "landcost_proxy_score": 0.0364,
+        "t2m_celsius": 25.86,
+        "computed_derating_factor": 0.8846
+      },
+      "substation_details": {
+        "osm_id": "way/250821982",
+        "name": "Mahalingapura",
+        "operator": "KPTCL",
+        "voltage_tag": "220000;110000",
+        "voltage_v": 220000.0,
+        "distance_km": 0.42,
+        "closer_untagged": null
+      },
+      "normalized_criteria": {
+        "ghi": 0.4571,
+        "substation": 0.9917,
+        "landcost": 0.0364,
+        "temp_derating": 0.414
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 1.05,
+          "mean_pct": 1.84,
+          "max_pct": 6.27,
+          "f_slope_usable": 0.994,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.8084,
+          "f_lu_excluded": 0.1916,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        3,
+        0
+      ],
+      "exact_reasons": [
+        "GHI: 5.457 kWh/m\u00b2/day",
+        "Primary substation distance: 0.42 km",
+        "Transmission corridor distance: 0.01 km",
+        "Footprint mean slope: 1.84% (max: 6.27%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 25.86\u00b0C"
+      ]
+    },
+    {
+      "rank": 8,
+      "latitude": 14.2,
+      "longitude": 75.6,
+      "district": "Davanagere",
+      "status": "eligible",
+      "score": 0.6198,
+      "score_100": 61.98,
+      "p1_score": 0.5131,
+      "p1_score_v2": 0.6741,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4881,
+        "substation_dist_km": 6.23,
+        "substation_osm_id": "way/256638711",
+        "substation_name": "Kattige",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "66000",
+        "substation_voltage_v": 66000.0,
+        "transmission_line_dist_km": 0.39,
+        "transmission_line_osm_id": "way/256638759",
+        "nearest_generation_substation_dist_km": 5.28,
+        "nearest generation substation (context only)": 5.28,
+        "generation_substation_osm_id": "way/1357116485",
+        "generation_substation_name": null,
+        "landcost_proxy_score": 0.1313,
+        "t2m_celsius": 23.87,
+        "computed_derating_factor": 0.8925
+      },
+      "substation_details": {
+        "osm_id": "way/256638711",
+        "name": "Kattige",
+        "operator": "KPTCL",
+        "voltage_tag": "66000",
+        "voltage_v": 66000.0,
+        "distance_km": 6.23,
+        "closer_untagged": null
+      },
+      "normalized_criteria": {
+        "ghi": 0.4881,
+        "substation": 0.8753,
+        "landcost": 0.1313,
+        "temp_derating": 0.613
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 2.34,
+          "mean_pct": 2.88,
+          "max_pct": 8.19,
+          "f_slope_usable": 0.9719,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.9616,
+          "f_lu_excluded": 0.0384,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        1,
+        1
+      ],
+      "exact_reasons": [
+        "GHI: 5.488 kWh/m\u00b2/day",
+        "Primary substation distance: 6.23 km",
+        "Transmission corridor distance: 0.39 km",
+        "Footprint mean slope: 2.88% (max: 8.19%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 23.87\u00b0C"
+      ]
+    },
+    {
+      "rank": 9,
+      "latitude": 12.2,
+      "longitude": 76.6,
+      "district": "Mysuru",
+      "status": "eligible",
+      "score": 0.6124,
+      "score_100": 61.24,
+      "p1_score": 0.4532,
+      "p1_score_v2": 0.6529,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.413,
+        "substation_dist_km": 4.88,
+        "substation_osm_id": "way/284322826",
+        "substation_name": "unnamed",
+        "substation_operator": "unnamed",
+        "substation_voltage_tag": "66000",
+        "substation_voltage_v": 66000.0,
+        "transmission_line_dist_km": 1.12,
+        "transmission_line_osm_id": "way/284322875",
+        "nearest_generation_substation_dist_km": 28.6,
+        "nearest generation substation (context only)": 28.6,
+        "generation_substation_osm_id": "way/1245425679",
+        "generation_substation_name": null,
+        "landcost_proxy_score": 0.248,
+        "t2m_celsius": 23.86,
+        "computed_derating_factor": 0.8926
+      },
+      "substation_details": {
+        "osm_id": "way/284322826",
+        "name": "unnamed",
+        "operator": "unnamed",
+        "voltage_tag": "66000",
+        "voltage_v": 66000.0,
+        "distance_km": 4.88,
+        "closer_untagged": null
+      },
+      "normalized_criteria": {
+        "ghi": 0.413,
+        "substation": 0.9025,
+        "landcost": 0.248,
+        "temp_derating": 0.614
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 2.34,
+          "mean_pct": 3.21,
+          "max_pct": 7.43,
+          "f_slope_usable": 0.9409,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Grassland",
+          "centroid_suitability": "eligible",
+          "f_lu_usable": 0.9742,
+          "f_lu_excluded": 0.0258,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
         },
         "protected_buffer": {
           "status": "eligible",
@@ -618,20 +905,63 @@
       "region": [
         0,
         2
+      ],
+      "exact_reasons": [
+        "GHI: 5.413 kWh/m\u00b2/day",
+        "Primary substation distance: 4.88 km",
+        "Transmission corridor distance: 1.12 km",
+        "Footprint mean slope: 3.21% (max: 7.43%)",
+        "Land cover: Grassland",
+        "Ambient temperature (T2m): 23.86\u00b0C"
       ]
     },
     {
-      "rank": 12,
-      "latitude": 15.8,
-      "longitude": 77.0,
-      "status": "excluded",
-      "score": null,
-      "score_100": null,
-      "p1_score": 0.5114,
+      "rank": 10,
+      "latitude": 17.1,
+      "longitude": 76.8,
+      "district": "Kalaburagi",
+      "status": "eligible",
+      "score": 0.6063,
+      "score_100": 60.63,
+      "p1_score": 0.3827,
+      "p1_score_v2": 0.6512,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
       "needs_review": false,
       "needs_review_reasons": [],
-      "raw_criteria": {},
-      "normalized_criteria": {},
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4091,
+        "substation_dist_km": 0.66,
+        "substation_osm_id": "way/1191335808",
+        "substation_name": "Kalaburagi sub station",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "400000;220000",
+        "substation_voltage_v": 400000.0,
+        "transmission_line_dist_km": 0.56,
+        "transmission_line_osm_id": "way/1244098792",
+        "nearest_generation_substation_dist_km": 9.44,
+        "nearest generation substation (context only)": 9.44,
+        "generation_substation_osm_id": "way/1473566276",
+        "generation_substation_name": null,
+        "landcost_proxy_score": 0.2022,
+        "t2m_celsius": 27.23,
+        "computed_derating_factor": 0.8791
+      },
+      "substation_details": {
+        "osm_id": "way/1191335808",
+        "name": "Kalaburagi sub station",
+        "operator": "KPTCL",
+        "voltage_tag": "400000;220000",
+        "voltage_v": 400000.0,
+        "distance_km": 0.66,
+        "closer_untagged": null
+      },
+      "normalized_criteria": {
+        "ghi": 0.4091,
+        "substation": 0.9869,
+        "landcost": 0.2022,
+        "temp_derating": 0.277
+      },
       "weights": {
         "ghi": 0.4000000000000001,
         "substation": 0.4,
@@ -639,27 +969,255 @@
         "temp_derating": 0.1
       },
       "constraints": {
-        "slope": {
-          "mode": "centroid",
-          "value_pct": 1.42,
-          "tripped": false,
-          "threshold": "<= 5.0%"
-        },
-        "landuse": {
-          "mode": "centroid",
-          "class_code": 40,
-          "class_name": "Cropland",
-          "suitability": "eligible_penalised",
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
           "tripped": false
         },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 1.09,
+          "mean_pct": 1.29,
+          "max_pct": 4.92,
+          "f_slope_usable": 1.0,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.9695,
+          "f_lu_excluded": 0.0305,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
         "protected_buffer": {
-          "status": "excluded",
-          "tripped": true
+          "status": "eligible",
+          "tripped": false
         }
       },
       "region": [
-        3,
+        4,
         2
+      ],
+      "exact_reasons": [
+        "GHI: 5.409 kWh/m\u00b2/day",
+        "Primary substation distance: 0.66 km",
+        "Transmission corridor distance: 0.56 km",
+        "Footprint mean slope: 1.29% (max: 4.92%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 27.23\u00b0C"
+      ]
+    },
+    {
+      "rank": 11,
+      "latitude": 17.2,
+      "longitude": 75.9,
+      "district": "Vijayapura",
+      "status": "eligible",
+      "score": 0.5992,
+      "score_100": 59.92,
+      "p1_score": 0.4382,
+      "p1_score_v2": 0.6513,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": false,
+      "needs_review_reasons": [],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.461,
+        "substation_dist_km": 4.12,
+        "substation_osm_id": "way/250565706",
+        "substation_name": "Indi",
+        "substation_operator": "KPTCL",
+        "substation_voltage_tag": "220000;110000",
+        "substation_voltage_v": 220000.0,
+        "transmission_line_dist_km": 1.4,
+        "transmission_line_osm_id": "way/250565862",
+        "nearest_generation_substation_dist_km": 11.76,
+        "nearest generation substation (context only)": 11.76,
+        "generation_substation_osm_id": "way/1304607697",
+        "generation_substation_name": "Lachyan Traction",
+        "landcost_proxy_score": 0.1306,
+        "t2m_celsius": 26.53,
+        "computed_derating_factor": 0.8819
+      },
+      "substation_details": {
+        "osm_id": "way/250565706",
+        "name": "Indi",
+        "operator": "KPTCL",
+        "voltage_tag": "220000;110000",
+        "voltage_v": 220000.0,
+        "distance_km": 4.12,
+        "closer_untagged": null
+      },
+      "normalized_criteria": {
+        "ghi": 0.461,
+        "substation": 0.9177,
+        "landcost": 0.1306,
+        "temp_derating": 0.347
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 2.35,
+          "mean_pct": 2.01,
+          "max_pct": 4.15,
+          "f_slope_usable": 1.0,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Cropland",
+          "centroid_suitability": "eligible_penalised",
+          "f_lu_usable": 0.9884,
+          "f_lu_excluded": 0.0116,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        4,
+        1
+      ],
+      "exact_reasons": [
+        "GHI: 5.461 kWh/m\u00b2/day",
+        "Primary substation distance: 4.12 km",
+        "Transmission corridor distance: 1.40 km",
+        "Footprint mean slope: 2.01% (max: 4.15%)",
+        "Land cover: Cropland",
+        "Ambient temperature (T2m): 26.53\u00b0C"
+      ]
+    },
+    {
+      "rank": 12,
+      "latitude": 15.4,
+      "longitude": 75.1,
+      "district": "Dharwad",
+      "status": "needs_review",
+      "score": 0.5968,
+      "score_100": 59.68,
+      "p1_score": 0.443,
+      "p1_score_v2": 0.6482,
+      "exclusion_reason": null,
+      "tripped_constraints": [],
+      "needs_review": true,
+      "needs_review_reasons": [
+        "Untagged substation at 2.29 km is closer than nearest confirmed >=33kV (4.76 km)"
+      ],
+      "raw_criteria": {
+        "ghi_kwh_m2_day": 5.4247,
+        "substation_dist_km": 4.76,
+        "substation_osm_id": "way/251093109",
+        "substation_name": "Gopankoppa",
+        "substation_operator": "unnamed",
+        "substation_voltage_tag": "110000",
+        "substation_voltage_v": 110000.0,
+        "transmission_line_dist_km": 1.25,
+        "transmission_line_osm_id": "way/250869006",
+        "nearest_generation_substation_dist_km": 21.32,
+        "nearest generation substation (context only)": 21.32,
+        "generation_substation_osm_id": "way/250869025",
+        "generation_substation_name": "Tata Hitachi",
+        "landcost_proxy_score": 0.1346,
+        "t2m_celsius": 24.84,
+        "computed_derating_factor": 0.8886,
+        "closer_untagged_osm_id": "way/409304562",
+        "closer_untagged_lat": 15.38545,
+        "closer_untagged_lon": 75.08422,
+        "closer_untagged_dist_km": 2.293,
+        "closer_untagged_tags": {
+          "power": "substation"
+        }
+      },
+      "substation_details": {
+        "osm_id": "way/251093109",
+        "name": "Gopankoppa",
+        "operator": "unnamed",
+        "voltage_tag": "110000",
+        "voltage_v": 110000.0,
+        "distance_km": 4.76,
+        "closer_untagged": {
+          "osm_id": "way/409304562",
+          "lat": 15.38545,
+          "lon": 75.08422,
+          "distance_km": 2.293,
+          "tags": {
+            "power": "substation"
+          }
+        }
+      },
+      "normalized_criteria": {
+        "ghi": 0.4247,
+        "substation": 0.9048,
+        "landcost": 0.1346,
+        "temp_derating": 0.516
+      },
+      "weights": {
+        "ghi": 0.4000000000000001,
+        "substation": 0.4,
+        "landcost": 0.1,
+        "temp_derating": 0.1
+      },
+      "constraints": {
+        "boundary": {
+          "passed": true,
+          "disk_fraction": 1.0,
+          "threshold": ">= 90% disk inside boundary",
+          "tripped": false
+        },
+        "slope": {
+          "mode": "footprint_zonal",
+          "centroid_pct": 4.88,
+          "mean_pct": 2.91,
+          "max_pct": 8.03,
+          "f_slope_usable": 0.9372,
+          "tripped": false,
+          "threshold": ">= 80% disk slope <= 5.0%"
+        },
+        "landuse": {
+          "mode": "footprint_zonal",
+          "centroid_class": "Tree cover",
+          "centroid_suitability": "excluded",
+          "f_lu_usable": 0.8027,
+          "f_lu_excluded": 0.1973,
+          "tripped": false,
+          "threshold": ">= 80% disk eligible land-use"
+        },
+        "protected_buffer": {
+          "status": "eligible",
+          "tripped": false
+        }
+      },
+      "region": [
+        2,
+        0
+      ],
+      "exact_reasons": [
+        "GHI: 5.425 kWh/m\u00b2/day",
+        "Primary substation distance: 4.76 km",
+        "Transmission corridor distance: 1.25 km",
+        "Footprint mean slope: 2.91% (max: 8.03%)",
+        "Land cover: Tree cover",
+        "Ambient temperature (T2m): 24.84\u00b0C"
       ]
     }
   ]

@@ -345,6 +345,10 @@ def get_landuse_class(lat: float, lon: float) -> int:
     ds = _get_dataset(tile)
 
     row, col = rowcol(ds.transform, lon, lat)
+    if row == ds.height:
+        row = ds.height - 1
+    if col == ds.width:
+        col = ds.width - 1
 
     if not (0 <= row < ds.height and 0 <= col < ds.width):
         raise ValueError(

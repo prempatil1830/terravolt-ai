@@ -3,33 +3,34 @@ import geopandas as gpd
 from shapely.geometry import Point
 import pandas as pd
 
+import glob
+
 WDPA_DIRS = [
     "data/wdpa/part1",
     "data/wdpa/part2",
     "data/wdpa/part3",
 ]
-SHP_FILENAME = "WDPA_WDOECM_Sep2026_Public_IND_shp-polygons.shp"
 base_dir = "/Users/prempatil/Documents/solar-pv-karnataka/geoprocessing"
 
 print("--- WDPA Diagnostic ---")
 
 gdfs = []
 for d in WDPA_DIRS:
-    shp_path = os.path.join(base_dir, d, SHP_FILENAME)
-    if os.path.exists(shp_path):
-        gdfs.append(gpd.read_file(shp_path))
+    for shp_path in glob.glob(os.path.join(base_dir, d, "*polygons.shp")):
+        if os.path.exists(shp_path):
+            gdfs.append(gpd.read_file(shp_path))
 
 gdf = pd.concat(gdfs, ignore_index=True)
 gdf = gpd.GeoDataFrame(gdf, geometry='geometry')
 
 print(f"(a) Total polygon features loaded: {len(gdf)}")
 
-# The name column is usually 'NAME' or 'ORIG_NAME' or 'WDPA_PID'
 if 'NAME' in gdf.columns:
-    bandipur_matches = gdf[gdf['NAME'].str.contains('Bandipur', case=False, na=False)]
-    print(f"(b) Polygon with 'Bandipur' in name field exists: {not bandipur_matches.empty}")
-    if not bandipur_matches.empty:
-        print("    Matches:", bandipur_matches['NAME'].tolist())
+    for target in ["Bandipur", "Nagarhole", "Bhadra"]:
+        m = gdf[gdf['NAME'].astype(str).str.contains(target, case=False, na=False)]
+        print(f"(b) Polygon with '{target}' exists: {not m.empty}")
+        if not m.empty:
+            print(f"    Matches for {target}:", m['NAME'].tolist()[:3])
 else:
     print(f"(b) No 'NAME' column found. Columns are: {gdf.columns.tolist()}")
 

@@ -247,7 +247,19 @@ def _compute_slope_raster(
 
     # Mask nodata and any non-finite values.
     mask = (elev == nodata) | ~np.isfinite(elev)
-    elev[mask] = np.nan
+
+    # Apply 3x3 mean smoothing on the DEM to remove high-frequency DSM artefacts
+    # (such as solar panel rows, fences, and local vegetation textures)
+    # while preserving regional terrain gradients.
+    elev_clean = np.where(mask, 0.0, elev)
+    padded = np.pad(elev_clean, 1, mode="edge")
+    smooth_elev = (
+        padded[:-2, :-2] + padded[:-2, 1:-1] + padded[:-2, 2:] +
+        padded[1:-1, :-2] + padded[1:-1, 1:-1] + padded[1:-1, 2:] +
+        padded[2:, :-2] + padded[2:, 1:-1] + padded[2:, 2:]
+    ) / 9.0
+    elev_smooth = np.pad(smooth_elev, 0)
+    elev_smooth[mask] = np.nan
 
     # Pixel size in degrees (from affine transform).
     dx_deg = abs(transform.a)   # W-to-E pixel width in degrees
@@ -267,7 +279,7 @@ def _compute_slope_raster(
     # Compute partial derivatives using numpy central differences.
     # np.gradient returns (dy_gradient, dx_gradient) for a 2-D array where
     # the first axis is rows (N-S) and the second axis is cols (E-W).
-    dz_dy, dz_dx = np.gradient(elev, dy_m, dx_m)
+    dz_dy, dz_dx = np.gradient(elev_smooth, dy_m, dx_m)
 
     slope_rad = np.arctan(np.sqrt(dz_dx**2 + dz_dy**2))
     slope_pct = np.tan(slope_rad) * 100.0
